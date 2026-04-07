@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{client}} - Technical SEO Analysis</title>
+<title>___CLIENT___ - Technical SEO Analysis</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap');
@@ -213,12 +213,12 @@
   <div class="header-left">
     <img src="https://cdn.gamma.app/k7vrwajzpduwe1o/d78119c355bf4703b043c52d00ab00f8/original/Searchable-Logo_Searchable-White-Blue-Logo.png" alt="Searchable">
     <div>
-      <h1>{{client}} - Technical SEO Analysis</h1>
-      <div class="meta">{{domain}} | {{crawl_type}} | {{date}}</div>
+      <h1>___CLIENT___ - Technical SEO Analysis</h1>
+      <div class="meta">___DOMAIN___ | ___CRAWL_TYPE___ | ___DATE___</div>
     </div>
   </div>
   <div class="header-right">
-    <div class="date">Prepared {{date}}</div>
+    <div class="date">Prepared ___DATE___</div>
   </div>
 </div>
 
@@ -233,12 +233,12 @@
   </div>
 
   <div class="stats">
-    <div class="si"><div class="v">{{urls_encountered}}</div><div class="k">URLs Encountered</div></div>
-    <div class="si"><div class="v">{{internal_count}}</div><div class="k">Internal</div></div>
-    <div class="si"><div class="v">{{external_count}}</div><div class="k">External</div></div>
-    <div class="si"><div class="v">{{indexable_count}}</div><div class="k">Indexable</div></div>
-    <div class="si"><div class="v">{{non_indexable_count}}</div><div class="k">Non-Indexable</div></div>
-    <div class="si"><div class="v">{{html_pages_count}}</div><div class="k">HTML Pages</div></div>
+    <div class="si"><div class="v">___URLS_ENCOUNTERED___</div><div class="k">URLs Encountered</div></div>
+    <div class="si"><div class="v">___INTERNAL_COUNT___</div><div class="k">Internal</div></div>
+    <div class="si"><div class="v">___EXTERNAL_COUNT___</div><div class="k">External</div></div>
+    <div class="si"><div class="v">___INDEXABLE_COUNT___</div><div class="k">Indexable</div></div>
+    <div class="si"><div class="v">___NON_INDEXABLE_COUNT___</div><div class="k">Non-Indexable</div></div>
+    <div class="si"><div class="v">___HTML_PAGES_COUNT___</div><div class="k">HTML Pages</div></div>
   </div>
 
   <div class="section" id="summaryBlock">
@@ -314,7 +314,7 @@
 
 <script>
 // Issue data - populated server-side from Claude analysis
-var issues = {{issues_json}};
+var issues = ___ISSUES_JSON___;
 
 var currentFilter = 'all';
 var categoryLabels = { tech: "Technical", cont: "Content", auth: "Authority" };
@@ -328,7 +328,7 @@ var statusClasses = { ns: "ns", ip: "ip", dn: "dn" };
 var severityLabels = { p1: "Immediate", p2: "Important", p3: "Routine", p4: "Minor" };
 
 // Load saved state
-var saved = localStorage.getItem('audit-{{client_slug}}');
+var saved = localStorage.getItem('audit-___CLIENT_SLUG___');
 if (saved) {
   try {
     var savedData = JSON.parse(saved);
@@ -354,7 +354,7 @@ if (saved) {
 
 function saveState() {
   var data = issues.map(function(i) { return { id: i.id, status: i.status, effort: i.effort, severity: i.severity }; });
-  localStorage.setItem('audit-{{client_slug}}', JSON.stringify(data));
+  localStorage.setItem('audit-___CLIENT_SLUG___', JSON.stringify(data));
   var ind = document.getElementById('saveIndicator');
   ind.classList.add('show');
   setTimeout(function() { ind.classList.remove('show'); }, 1500);
@@ -533,10 +533,10 @@ document.getElementById('urlModal').onclick = function(e) {
 
 // PageSpeed data — grouped by issue category
 // Claude populates this from SF PageSpeed export
-var pagespeedCategories = {{pagespeed_categories_json}};
+var pagespeedCategories = ___PAGESPEED_CATEGORIES_JSON___;
 
 // Legacy format for backward compat
-var pagespeedData = {{pagespeed_data_json}};
+var pagespeedData = ___PAGESPEED_DATA_JSON___;
 
 function scoreClass(v) { return v >= 90 ? 'good' : v >= 50 ? 'needs-work' : 'poor'; }
 
@@ -609,13 +609,13 @@ function togglePS(id) {
 }
 
 // Editable summary — load saved or use default
-var defaultSummary = `{{summary_html}}`;
+var defaultSummary = `___SUMMARY_HTML___`;
 
-var savedSummary = localStorage.getItem('audit-{{client_slug}}-summary');
+var savedSummary = localStorage.getItem('audit-___CLIENT_SLUG___-summary');
 document.getElementById('summaryText').innerHTML = savedSummary || defaultSummary;
 
 function saveSummary() {
-  localStorage.setItem('audit-{{client_slug}}-summary', document.getElementById('summaryText').innerHTML);
+  localStorage.setItem('audit-___CLIENT_SLUG___-summary', document.getElementById('summaryText').innerHTML);
   var ind = document.getElementById('saveIndicator');
   ind.classList.add('show');
   setTimeout(function() { ind.classList.remove('show'); }, 1500);
@@ -624,8 +624,8 @@ function saveSummary() {
 // Core Web Vitals data — populated from SF PageSpeed export (mobile + desktop strategies)
 // Each URL has separate mobile and desktop measurements
 // Per-device data populated server-side from Screaming Frog PageSpeed export
-var cwvDataMobile = {{cwv_mobile_json}};
-var cwvDataDesktop = {{cwv_desktop_json}};
+var cwvDataMobile = ___CWV_MOBILE_JSON___;
+var cwvDataDesktop = ___CWV_DESKTOP_JSON___;
 
 // Merge per-URL into the {url, mobile, desktop} structure renderCwv() expects
 function mergeCwvData(mobile, desktop) {
