@@ -609,7 +609,7 @@ function togglePS(id) {
 }
 
 // Editable summary — load saved or use default
-var defaultSummary = '{{summary_html}}';
+var defaultSummary = `{{summary_html}}`;
 
 var savedSummary = localStorage.getItem('audit-{{client_slug}}-summary');
 document.getElementById('summaryText').innerHTML = savedSummary || defaultSummary;
