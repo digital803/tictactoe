@@ -623,7 +623,28 @@ function saveSummary() {
 
 // Core Web Vitals data — populated from SF PageSpeed export (mobile + desktop strategies)
 // Each URL has separate mobile and desktop measurements
-var cwvData = {{cwv_data_json}};
+// Per-device data populated server-side from Screaming Frog PageSpeed export
+var cwvDataMobile = {{cwv_mobile_json}};
+var cwvDataDesktop = {{cwv_desktop_json}};
+
+// Merge per-URL into the {url, mobile, desktop} structure renderCwv() expects
+function mergeCwvData(mobile, desktop) {
+  var byUrl = {};
+  (mobile || []).forEach(function(m) {
+    byUrl[m.url] = { url: m.url, mobile: { lcp: m.lcp, cls: m.cls, inp: m.inp, score: m.score }, desktop: null };
+  });
+  (desktop || []).forEach(function(d) {
+    if (byUrl[d.url]) {
+      byUrl[d.url].desktop = { lcp: d.lcp, cls: d.cls, inp: d.inp, score: d.score };
+    } else {
+      byUrl[d.url] = { url: d.url, mobile: null, desktop: { lcp: d.lcp, cls: d.cls, inp: d.inp, score: d.score } };
+    }
+  });
+  var out = [];
+  for (var k in byUrl) { if (byUrl.hasOwnProperty(k)) out.push(byUrl[k]); }
+  return out;
+}
+var cwvData = mergeCwvData(cwvDataMobile, cwvDataDesktop);
 
 // Thresholds: LCP good ≤2.5s / NW ≤4.0s / poor >4.0s
 //             INP good ≤200ms / NW ≤500ms / poor >500ms
