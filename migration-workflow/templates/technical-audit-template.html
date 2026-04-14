@@ -141,6 +141,12 @@
   .ps-copy-btn:hover { background: #f5f5f5; }
   .ps-copy-btn.copied { color: #38a169; border-color: #38a169; }
   .ps-cat-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .ps-summary-card { background: #f0f7ff; border: 1px solid #c3d9f5; padding: 16px 20px; margin-bottom: 18px; display: flex; align-items: flex-start; gap: 20px; }
+  .ps-summary-score-num { font-size: 36px; font-weight: 700; line-height: 1; flex-shrink: 0; }
+  .ps-summary-score-num.good { color: #38a169; }
+  .ps-summary-score-num.needs-work { color: #d69e2e; }
+  .ps-summary-score-num.poor { color: #e53e3e; }
+  .ps-summary-text { font-size: 13px; color: #444; line-height: 1.7; }
 
   /* Core Web Vitals */
   .cwv-tabs { display: flex; gap: 0; margin-bottom: 14px; border-bottom: 1px solid #e0e0e0; }
@@ -287,6 +293,7 @@
 
   <div class="section" id="pagespeed-section">
     <h2>PageSpeed - Pages by Issue Type</h2>
+    <div id="ps-summary-block"></div>
     <div id="psPages"></div>
   </div>
 
@@ -589,6 +596,28 @@ function renderPageSpeed() {
   });
 }
 
+function renderPsSummary() {
+  var container = document.getElementById('ps-summary-block');
+  if (!container) return;
+  var scores = (cwvDataMobile || []).map(function(p) { return p.score; }).filter(function(s) { return s != null && !isNaN(parseFloat(s)); });
+  if (scores.length === 0) { container.innerHTML = ''; return; }
+  var avg = Math.round(scores.reduce(function(a, b) { return a + parseFloat(b); }, 0) / scores.length);
+  var cls = avg >= 90 ? 'good' : avg >= 50 ? 'needs-work' : 'poor';
+  var rating = avg >= 90 ? 'Good' : avg >= 50 ? 'Needs Improvement' : 'Poor';
+  container.innerHTML =
+    '<div class="ps-summary-card">' +
+      '<div class="ps-summary-score-num ' + cls + '">' + avg + '<span style="font-size:18px;font-weight:400">/100</span></div>' +
+      '<div class="ps-summary-text">' +
+        '<strong style="font-size:14px;color:#00142a">Average Performance Score — ' + rating + '</strong><br>' +
+        'Across ' + scores.length + ' page' + (scores.length !== 1 ? 's' : '') + ' tested via Google PageSpeed Insights (mobile). A score of ' + avg + '/100 indicates ' +
+        (avg >= 90 ? 'strong page performance with minimal impact on user experience.' :
+         avg >= 50 ? 'moderate performance — there are meaningful opportunities to improve load speed and user experience.' :
+         'significant performance issues that are likely affecting user experience and may be impacting organic rankings.') +
+        ' The issue categories below break down the root causes affecting the most pages.' +
+      '</div>' +
+    '</div>';
+}
+
 function copyPsUrls(cid, catIdx) {
   var cat = pagespeedCategories[catIdx];
   if (!cat) return;
@@ -738,9 +767,26 @@ function toggleCwvUrls(idx) {
   document.getElementById('cwv-urls-' + idx).classList.toggle('open');
 }
 
+// Filter PageSpeed/CWV issues out of Prioritised Issues — these are covered in dedicated sections below
+var psKeywords = [
+  'render-block', 'unused javascript', 'unused css', 'main-thread', 'javascript execution',
+  'network payload', 'image delivery', 'cache lifetime', 'font display', 'legacy javascript',
+  'forced reflow', 'carbon', 'pagespeed', 'page speed', 'core web vital', 'cumulative layout',
+  'largest contentful', 'interaction to next', 'total blocking', 'excessive javascript',
+  'large network', 'text compression', 'offscreen image', 'properly size', 'next-gen format',
+  'efficiently encode', 'serve scaled', 'preload key', 'avoid chaining', 'dom size',
+  'third-party code', 'avoid enormous', 'reduce unused', 'eliminate render', 'unminified',
+  'minif', 'web vitals', 'performance score', 'page load', 'time to interactive'
+];
+issues = issues.filter(function(issue) {
+  var t = issue.title.toLowerCase();
+  return !psKeywords.some(function(kw) { return t.indexOf(kw) !== -1; });
+});
+
 renderTable();
 renderCwv();
 renderPageSpeed();
+renderPsSummary();
 </script>
 
 </body>
