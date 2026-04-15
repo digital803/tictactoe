@@ -223,8 +223,9 @@
       <div class="meta">___DOMAIN___ | ___CRAWL_TYPE___ | ___DATE___</div>
     </div>
   </div>
-  <div class="header-right">
+  <div class="header-right" style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
     <div class="date">Prepared ___DATE___</div>
+    <button onclick="saveToFile()" style="background:#357ce7;color:#fff;border:none;padding:7px 16px;font-size:12px;font-weight:600;cursor:pointer;letter-spacing:.03em">&#8681; Save File</button>
   </div>
 </div>
 
@@ -270,6 +271,70 @@
       <button onclick="filterBy('ns')" id="f-ns">Not Started</button>
       <button onclick="filterBy('ip')" id="f-ip">In Progress</button>
       <button onclick="filterBy('dn')" id="f-dn">Complete</button>
+      <button onclick="openAddTask()" style="margin-left:auto;background:#357ce7;color:#fff;border-color:#357ce7;font-weight:600">+ Add Task</button>
+    </div>
+
+    <!-- Add Task Modal -->
+    <div class="modal-overlay" id="addTaskModal">
+      <div class="modal" style="max-width:600px">
+        <div class="modal-header">
+          <h3>Add Manual Task</h3>
+          <button class="modal-close" onclick="closeAddTask()">&times;</button>
+        </div>
+        <div class="modal-body" style="padding:20px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+            <div>
+              <label style="font-size:11px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px">Priority</label>
+              <select id="at-severity" style="width:100%;padding:7px 10px;border:1px solid #ddd;font-size:13px;font-family:inherit">
+                <option value="p1">P1 — Immediate</option>
+                <option value="p2" selected>P2 — Important</option>
+                <option value="p3">P3 — Routine</option>
+                <option value="p4">P4 — Minor</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px">Category</label>
+              <select id="at-category" style="width:100%;padding:7px 10px;border:1px solid #ddd;font-size:13px;font-family:inherit">
+                <option value="tech">Technical</option>
+                <option value="cont">Content</option>
+                <option value="auth">Authority</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px">Effort</label>
+              <select id="at-effort" style="width:100%;padding:7px 10px;border:1px solid #ddd;font-size:13px;font-family:inherit">
+                <option value="qf">Quick Fix</option>
+                <option value="mod" selected>Moderate</option>
+                <option value="sig">Significant</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px">URL Count</label>
+              <input id="at-urlcount" type="number" min="0" value="0" style="width:100%;padding:7px 10px;border:1px solid #ddd;font-size:13px;font-family:inherit">
+            </div>
+          </div>
+          <div style="margin-bottom:12px">
+            <label style="font-size:11px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px">Task Title *</label>
+            <input id="at-title" type="text" placeholder="e.g. Fix broken canonical tags" style="width:100%;padding:7px 10px;border:1px solid #ddd;font-size:13px;font-family:inherit">
+          </div>
+          <div style="margin-bottom:12px">
+            <label style="font-size:11px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px">Description</label>
+            <textarea id="at-desc" rows="3" placeholder="Explain the issue and why it matters..." style="width:100%;padding:7px 10px;border:1px solid #ddd;font-size:13px;font-family:inherit;resize:vertical"></textarea>
+          </div>
+          <div style="margin-bottom:12px">
+            <label style="font-size:11px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px">How to Fix (one step per line)</label>
+            <textarea id="at-fix" rows="3" placeholder="Step 1&#10;Step 2&#10;Step 3" style="width:100%;padding:7px 10px;border:1px solid #ddd;font-size:13px;font-family:inherit;resize:vertical"></textarea>
+          </div>
+          <div style="margin-bottom:20px">
+            <label style="font-size:11px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px">Affected URLs (one per line)</label>
+            <textarea id="at-urls" rows="3" placeholder="https://example.com/page-1&#10;https://example.com/page-2" style="width:100%;padding:7px 10px;border:1px solid #ddd;font-size:13px;font-family:inherit;resize:vertical"></textarea>
+          </div>
+          <div style="display:flex;gap:8px;justify-content:flex-end">
+            <button class="modal-btn outline" onclick="closeAddTask()">Cancel</button>
+            <button class="modal-btn" onclick="submitAddTask()">Add Task</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <table id="issueTable">
@@ -321,7 +386,7 @@
 
 <script>
 // Issue data - populated server-side from Claude analysis
-var issues = ___ISSUES_JSON___;
+var issues = ___ISSUES_JSON___; /*[SAVE:issues]*/
 
 var currentFilter = 'all';
 var categoryLabels = { tech: "Technical", cont: "Content", auth: "Authority" };
@@ -604,18 +669,30 @@ function renderPsSummary() {
   var avg = Math.round(scores.reduce(function(a, b) { return a + parseFloat(b); }, 0) / scores.length);
   var cls = avg >= 90 ? 'good' : avg >= 50 ? 'needs-work' : 'poor';
   var rating = avg >= 90 ? 'Good' : avg >= 50 ? 'Needs Improvement' : 'Poor';
+  var defaultText =
+    '<strong style="font-size:14px;color:#00142a">Average Performance Score — ' + rating + '</strong><br>' +
+    'Across ' + scores.length + ' page' + (scores.length !== 1 ? 's' : '') + ' tested via Google PageSpeed Insights (mobile). A score of ' + avg + '/100 indicates ' +
+    (avg >= 90 ? 'strong page performance with minimal impact on user experience.' :
+     avg >= 50 ? 'moderate performance — there are meaningful opportunities to improve load speed and user experience.' :
+     'significant performance issues that are likely affecting user experience and may be impacting organic rankings.') +
+    ' The issue categories below break down the root causes affecting the most pages.';
+  var savedText = psSummaryOverride || localStorage.getItem('audit-___CLIENT_SLUG___-ps-summary');
   container.innerHTML =
     '<div class="ps-summary-card">' +
       '<div class="ps-summary-score-num ' + cls + '">' + avg + '<span style="font-size:18px;font-weight:400">/100</span></div>' +
-      '<div class="ps-summary-text">' +
-        '<strong style="font-size:14px;color:#00142a">Average Performance Score — ' + rating + '</strong><br>' +
-        'Across ' + scores.length + ' page' + (scores.length !== 1 ? 's' : '') + ' tested via Google PageSpeed Insights (mobile). A score of ' + avg + '/100 indicates ' +
-        (avg >= 90 ? 'strong page performance with minimal impact on user experience.' :
-         avg >= 50 ? 'moderate performance — there are meaningful opportunities to improve load speed and user experience.' :
-         'significant performance issues that are likely affecting user experience and may be impacting organic rankings.') +
-        ' The issue categories below break down the root causes affecting the most pages.' +
+      '<div class="ps-summary-text" id="ps-summary-text" contenteditable="true" style="outline:none;border:1px solid transparent;padding:4px;border-radius:2px" ' +
+        'onfocus="this.style.borderColor=\'#357ce7\';this.style.background=\'#f8fbff\'" ' +
+        'onblur="this.style.borderColor=\'transparent\';this.style.background=\'transparent\';savePsSummary()">' +
+        (savedText || defaultText) +
       '</div>' +
     '</div>';
+}
+function savePsSummary() {
+  var el = document.getElementById('ps-summary-text');
+  if (el) localStorage.setItem('audit-___CLIENT_SLUG___-ps-summary', el.innerHTML);
+  var ind = document.getElementById('saveIndicator');
+  ind.classList.add('show');
+  setTimeout(function() { ind.classList.remove('show'); }, 1500);
 }
 
 function copyPsUrls(cid, catIdx) {
@@ -638,7 +715,8 @@ function togglePS(id) {
 }
 
 // Editable summary — load saved or use default
-var defaultSummary = `___SUMMARY_HTML___`;
+var defaultSummary = `___SUMMARY_HTML___`; /*[SAVE:summary]*/
+var psSummaryOverride = null; /*[SAVE:pssummary]*/
 
 var savedSummary = localStorage.getItem('audit-___CLIENT_SLUG___-summary');
 document.getElementById('summaryText').innerHTML = savedSummary || defaultSummary;
@@ -765,6 +843,111 @@ function renderCwv() {
 
 function toggleCwvUrls(idx) {
   document.getElementById('cwv-urls-' + idx).classList.toggle('open');
+}
+
+// Add Task modal
+function openAddTask() {
+  document.getElementById('at-title').value = '';
+  document.getElementById('at-desc').value = '';
+  document.getElementById('at-fix').value = '';
+  document.getElementById('at-urls').value = '';
+  document.getElementById('at-urlcount').value = '0';
+  document.getElementById('at-severity').value = 'p2';
+  document.getElementById('at-category').value = 'tech';
+  document.getElementById('at-effort').value = 'mod';
+  document.getElementById('addTaskModal').classList.add('open');
+  setTimeout(function() { document.getElementById('at-title').focus(); }, 100);
+}
+function closeAddTask() {
+  document.getElementById('addTaskModal').classList.remove('open');
+}
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('addTaskModal').addEventListener('click', function(e) {
+    if (e.target === this) closeAddTask();
+  });
+});
+function submitAddTask() {
+  var title = document.getElementById('at-title').value.trim();
+  if (!title) { document.getElementById('at-title').style.borderColor = '#e53e3e'; document.getElementById('at-title').focus(); return; }
+  document.getElementById('at-title').style.borderColor = '#ddd';
+  var fixLines = document.getElementById('at-fix').value.split('\n').map(function(l) { return l.trim(); }).filter(Boolean);
+  var urlLines = document.getElementById('at-urls').value.split('\n').map(function(l) { return l.trim(); }).filter(Boolean);
+  var urlCount = parseInt(document.getElementById('at-urlcount').value) || urlLines.length;
+  var newIssue = {
+    id: 'manual-' + Date.now(),
+    title: title,
+    description: document.getElementById('at-desc').value.trim() || 'Manually added task.',
+    fix: fixLines.length ? fixLines : ['Review and address as needed.'],
+    severity: document.getElementById('at-severity').value,
+    category: document.getElementById('at-category').value,
+    effort: document.getElementById('at-effort').value,
+    status: 'ns',
+    urlCount: urlCount,
+    urls: urlLines
+  };
+  issues.push(newIssue);
+  saveState();
+  renderTable();
+  closeAddTask();
+}
+
+// Save File — writes current state directly back to the HTML file (Chrome/Edge only)
+var _saveFileHandle = null;
+function saveToFile() {
+  if (!window.showSaveFilePicker) {
+    alert('Direct file saving requires Chrome or Edge. Use the Export button instead, or open the file in Chrome.');
+    return;
+  }
+  var summaryEl = document.getElementById('summaryText');
+  var currentSummary = summaryEl ? summaryEl.innerHTML : '';
+  var psSummaryEl = document.getElementById('ps-summary-text');
+  var currentPsSummary = psSummaryEl ? psSummaryEl.innerHTML : null;
+  var html = document.documentElement.outerHTML;
+  // Bake in current issues state
+  html = html.replace(
+    /var issues\s*=\s*([\s\S]*?);\s*\/\*\[SAVE:issues\]\*\//,
+    'var issues = ' + JSON.stringify(issues) + '; /*[SAVE:issues]*/'
+  );
+  // Bake in current summary text
+  html = html.replace(
+    /var defaultSummary\s*=\s*`[\s\S]*?`;\s*\/\*\[SAVE:summary\]\*\//,
+    'var defaultSummary = `' + currentSummary.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$\{/g, '\\${') + '`; /*[SAVE:summary]*/'
+  );
+  // Bake in PS summary override
+  if (currentPsSummary) {
+    html = html.replace(
+      /var psSummaryOverride\s*=\s*[\s\S]*?;\s*\/\*\[SAVE:pssummary\]\*\//,
+      'var psSummaryOverride = `' + currentPsSummary.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$\{/g, '\\${') + '`; /*[SAVE:pssummary]*/'
+    );
+  }
+  html = '<!DOCTYPE html>\n' + html;
+  var doWrite = function(handle) {
+    handle.createWritable().then(function(writable) {
+      writable.write(html).then(function() {
+        writable.close().then(function() {
+          var ind = document.getElementById('saveIndicator');
+          ind.style.background = '#357ce7';
+          ind.textContent = 'File saved ✓';
+          ind.classList.add('show');
+          setTimeout(function() {
+            ind.classList.remove('show');
+            setTimeout(function() { ind.style.background = '#38a169'; ind.textContent = 'Changes saved'; }, 300);
+          }, 2000);
+        });
+      });
+    });
+  };
+  if (_saveFileHandle) {
+    doWrite(_saveFileHandle);
+  } else {
+    window.showSaveFilePicker({
+      suggestedName: 'technical-audit-report.html',
+      types: [{ description: 'HTML File', accept: { 'text/html': ['.html'] } }]
+    }).then(function(handle) {
+      _saveFileHandle = handle;
+      doWrite(handle);
+    }).catch(function(e) { if (e.name !== 'AbortError') console.error(e); });
+  }
 }
 
 // Filter PageSpeed/CWV issues out of Prioritised Issues — these are covered in dedicated sections below
