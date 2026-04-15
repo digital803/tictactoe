@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>___CLIENT___ - Technical SEO Analysis</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif; background: linear-gradient(180deg, #00142a 0%, #00142a 30%, #357ce7 45%, #357ce7 100%); min-height: 100vh; color: #1a1a1a; font-size: 14px; line-height: 1.6; }
+
+  .header { background: #00142a; color: #fff; padding: 48px 40px; display: flex; align-items: center; justify-content: space-between; }
+  .header-left { display: flex; align-items: center; gap: 24px; }
+  .header-left img { height: 28px; }
+  .header-left h1 { font-size: 20px; font-weight: 600; margin-bottom: 2px; }
+  .header-left .meta { color: #8892b0; font-size: 13px; }
+  .header-right .brand { color: #357ce7; font-size: 15px; font-weight: 700; letter-spacing: 0.5px; }
+  .header-right .date { color: #8892b0; font-size: 12px; margin-top: 2px; text-align: right; }
+
+  .container { max-width: 1200px; margin: 0 auto; padding: 28px 24px; }
+
+  .summary-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 24px; }
+  .sc { background: #357ce7; border-radius: 0; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,.2); text-align: center; color: #fff; position: relative; overflow: hidden; }
+  .sc .n { font-size: 34px; font-weight: 700; line-height: 1; margin-bottom: 6px; color: #fff; }
+  .sc .l { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; opacity: 0.7; }
+  .sc .tag { display: inline-block; margin-top: 8px; padding: 3px 10px; border-radius: 0; font-size: 10px; font-weight: 600; letter-spacing: .03em; background: rgba(255,255,255,.2); color: #fff; }
+
+  .stats { background: #133d66; display: flex; gap: 0; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,.2); }
+  .stats .si { flex: 1; padding: 14px 16px; text-align: center; border-right: 1px solid rgba(255,255,255,.1); }
+  .stats .si:last-child { border-right: none; }
+  .stats .si .v { font-size: 18px; font-weight: 700; color: #fff; }
+  .stats .si .k { font-size: 10px; color: rgba(255,255,255,.5); text-transform: uppercase; letter-spacing: .04em; }
+
+  .section { background: #fff; border-radius: 0; padding: 20px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,.15); }
+  .section h2 { font-size: 16px; font-weight: 600; color: #00142a; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid #eee; }
+
+  .toolbar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .toolbar button { background: none; border: 1px solid #ddd; padding: 5px 12px; border-radius: 0; font-size: 12px; color: #666; cursor: pointer; }
+  .toolbar button:hover { background: #f5f5f5; }
+  .toolbar button.active { background: #357ce7; color: #fff; border-color: #357ce7; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: #f7f7f7; text-align: left; padding: 10px 12px; font-weight: 600; color: #555; border-bottom: 2px solid #e0e0e0; position: sticky; top: 0; z-index: 1; }
+  td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
+  .toggle { cursor: default; }
+  .clickable { cursor: pointer; }
+  .clickable:hover { text-decoration: underline; }
+  .del-btn { background: none; border: none; color: #ccc; cursor: pointer; font-size: 16px; padding: 2px 6px; line-height: 1; }
+  .del-btn:hover { color: #e81b9f; }
+  .pri { cursor: pointer; }
+  tr.dragging { opacity: 0.4; }
+  tr.drag-over td { border-top: 2px solid #357ce7; }
+
+  .pri { width: 28px; height: 28px; border-radius: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; cursor: pointer; }
+  .pri.p1 { background: #e81b9f; }
+  .pri.p2 { background: #a31db4; }
+  .pri.p3 { background: #357ce7; }
+  .pri.p4 { background: #00142a; }
+
+  .b { display: inline-block; padding: 2px 7px; border-radius: 0; font-size: 11px; font-weight: 600; white-space: nowrap; cursor: pointer; user-select: none; }
+  .b.tech { background: #e8f0fe; color: #1b59b2; }
+  .b.cont { background: #fce8f4; color: #e81b9f; }
+  .b.auth { background: #f3e8f8; color: #a31db4; }
+  .b.qf { background: #e8f0fe; color: #357ce7; }
+  .b.mod { background: #fce8f4; color: #e81b9f; }
+  .b.sig { background: #f3e8f8; color: #a31db4; }
+
+  .st { display: inline-block; padding: 2px 8px; border-radius: 0; font-size: 11px; font-weight: 600; cursor: pointer; user-select: none; }
+  .st.ns { background: #e8edf5; color: #00142a; }
+  .st.ip { background: #e8f0fe; color: #357ce7; }
+  .st.dn { background: #e8f0fe; color: #1b59b2; }
+
+  .url-link { color: #357ce7; text-decoration: none; font-size: 12px; }
+  .url-link:hover { text-decoration: underline; }
+
+  .pri-cell { display: flex; align-items: center; gap: 8px; }
+  .drag-handle { cursor: grab; color: #ccc; font-size: 14px; flex-shrink: 0; }
+  .drag-handle:active { cursor: grabbing; }
+
+  .detail-row { display: none; }
+  .detail-row.open { display: table-row; }
+  .detail-cell { background: #fafafa; padding: 14px 12px 14px 52px; }
+  .detail-cell h4 { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: #888; margin: 10px 0 4px; }
+  .detail-cell h4:first-child { margin-top: 0; }
+  .detail-cell p { font-size: 13px; color: #333; margin-bottom: 4px; }
+  .detail-cell ul { padding-left: 18px; margin: 4px 0; }
+  .detail-cell li { font-size: 13px; color: #444; margin-bottom: 2px; }
+  .detail-cell code { font-family: 'SF Mono','Consolas',monospace; background: #f0f0f0; padding: 1px 5px; border-radius: 0; font-size: 12px; color: #c0392b; }
+  .arrow { color: #ccc; font-size: 14px; transition: transform .2s; display: inline-block; cursor: pointer; }
+  .arrow:hover { color: #357ce7; }
+  .arrow.open { transform: rotate(90deg); }
+
+  /* URL Modal */
+  .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,.5); z-index: 100; }
+  .modal-overlay.open { display: flex; align-items: center; justify-content: center; }
+  .modal { background: #fff; border-radius: 0; max-width: 900px; width: 95%; max-height: 85vh; overflow: hidden; display: flex; flex-direction: column; }
+  .modal-header { padding: 16px 20px; border-bottom: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .modal-header h3 { font-size: 15px; font-weight: 600; color: #00142a; flex: 1; }
+  .modal-actions { display: flex; gap: 8px; }
+  .modal-btn { background: #357ce7; color: #fff; border: none; padding: 6px 14px; border-radius: 0; font-size: 12px; font-weight: 600; cursor: pointer; }
+  .modal-btn:hover { background: #2563b8; }
+  .modal-btn.outline { background: none; color: #357ce7; border: 1px solid #357ce7; }
+  .modal-btn.outline:hover { background: #f0f5ff; }
+  .modal-close { background: none; border: none; font-size: 22px; cursor: pointer; color: #999; padding: 4px 8px; line-height: 1; }
+  .modal-close:hover { color: #333; }
+  .modal-body { padding: 0; overflow-y: auto; flex: 1; }
+  .modal-body table { font-size: 12px; width: 100%; }
+  .modal-body td { padding: 8px 16px; border-bottom: 1px solid #f5f5f5; }
+  .modal-body th { padding: 10px 16px; font-size: 11px; position: sticky; top: 0; background: #f7f7f7; z-index: 1; }
+  .modal-body tr:hover td { background: #fafafa; }
+  .modal-body code { font-size: 12px; }
+  .copy-success { color: #38a169; font-size: 12px; font-weight: 600; display: none; }
+  .copy-success.show { display: inline; }
+
+  /* PageSpeed section */
+  .ps-category { border: 1px solid #e0e0e0; border-radius: 0; margin-bottom: 14px; overflow: hidden; }
+  .ps-cat-header { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: #f7f7f7; border-bottom: 1px solid #e0e0e0; cursor: pointer; }
+  .ps-cat-header:hover { background: #f0f0f0; }
+  .ps-cat-title { flex: 1; font-size: 14px; font-weight: 500; color: #333; }
+  .ps-cat-count { font-size: 12px; color: #666; }
+  .ps-cat-count strong { color: #00142a; }
+  .ps-cat-body { display: none; }
+  .ps-cat-body.open { display: block; }
+  .ps-cat-fix { padding: 14px 16px; background: #f0f7ff; border-bottom: 1px solid #e0e0e0; }
+  .ps-cat-fix-title { font-size: 12px; font-weight: 600; color: #1b59b2; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 6px; }
+  .ps-cat-fix ul { padding-left: 18px; margin: 0; }
+  .ps-cat-fix li { font-size: 13px; color: #333; margin-bottom: 3px; }
+  .ps-url-list { max-height: 300px; overflow-y: auto; }
+  .ps-url-list table { font-size: 12px; }
+  .ps-url-list th { font-size: 11px; padding: 8px 14px; background: #fafafa; position: sticky; top: 0; }
+  .ps-url-list td { padding: 6px 14px; border-bottom: 1px solid #f5f5f5; }
+  .ps-url-list tr:hover td { background: #fafafa; }
+  .ps-url-list code { font-size: 11px; }
+  .ps-metric-inline { font-weight: 600; font-size: 12px; }
+  .ps-metric-inline.good { color: #38a169; }
+  .ps-metric-inline.needs-work { color: #d69e2e; }
+  .ps-metric-inline.poor { color: #e53e3e; }
+  .ps-arrow { color: #ccc; font-size: 14px; transition: transform .2s; display: inline-block; flex-shrink: 0; }
+  .ps-arrow.open { transform: rotate(90deg); }
+  .ps-copy-btn { background: none; border: 1px solid #ddd; padding: 3px 10px; border-radius: 0; font-size: 11px; color: #666; cursor: pointer; }
+  .ps-copy-btn:hover { background: #f5f5f5; }
+  .ps-copy-btn.copied { color: #38a169; border-color: #38a169; }
+  .ps-cat-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .ps-summary-card { background: #f0f7ff; border: 1px solid #c3d9f5; padding: 16px 20px; margin-bottom: 18px; display: flex; align-items: flex-start; gap: 20px; }
+  .ps-summary-score-num { font-size: 36px; font-weight: 700; line-height: 1; flex-shrink: 0; }
+  .ps-summary-score-num.good { color: #38a169; }
+  .ps-summary-score-num.needs-work { color: #d69e2e; }
+  .ps-summary-score-num.poor { color: #e53e3e; }
+  .ps-summary-text { font-size: 13px; color: #444; line-height: 1.7; }
+
+  /* Core Web Vitals */
+  .cwv-tabs { display: flex; gap: 0; margin-bottom: 14px; border-bottom: 1px solid #e0e0e0; }
+  .cwv-tab { background: none; border: none; padding: 10px 18px; font-size: 13px; font-weight: 500; color: #666; cursor: pointer; border-bottom: 2px solid transparent; font-family: inherit; }
+  .cwv-tab:hover { color: #357ce7; }
+  .cwv-tab.active { color: #357ce7; border-bottom-color: #357ce7; font-weight: 600; }
+  .cwv-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .cwv-card { border: 1px solid #e0e0e0; background: #fff; }
+  .cwv-card-head { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid #e0e0e0; }
+  .cwv-icon { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; flex-shrink: 0; }
+  .cwv-icon.good { background: #357ce7; }
+  .cwv-icon.needs-work { background: #a31db4; }
+  .cwv-icon.poor { background: #e81b9f; }
+  .cwv-meta { flex: 1; }
+  .cwv-meta .name { font-size: 13px; font-weight: 600; color: #00142a; }
+  .cwv-meta .sub { font-size: 11px; color: #888; margin-top: 2px; }
+  .cwv-status { font-size: 10px; font-weight: 700; padding: 3px 8px; text-transform: uppercase; letter-spacing: .04em; }
+  .cwv-status.good { background: #e8f0fe; color: #1b59b2; }
+  .cwv-status.needs-work { background: #f3e8f8; color: #a31db4; }
+  .cwv-status.poor { background: #fce8f4; color: #e81b9f; }
+  .cwv-bars { padding: 14px 16px; border-bottom: 1px solid #f0f0f0; }
+  .cwv-bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .cwv-bar-row:last-child { margin-bottom: 0; }
+  .cwv-bar-label { width: 90px; font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: .03em; flex-shrink: 0; }
+  .cwv-bar-track { flex: 1; height: 8px; background: #f0f0f0; }
+  .cwv-bar-fill { height: 100%; }
+  .cwv-bar-fill.good { background: #357ce7; }
+  .cwv-bar-fill.needs-work { background: #a31db4; }
+  .cwv-bar-fill.poor { background: #e81b9f; }
+  .cwv-bar-count { width: 32px; text-align: right; font-size: 12px; font-weight: 600; color: #333; }
+  .cwv-toggle { padding: 10px 16px; text-align: left; }
+  .cwv-toggle button { background: none; border: 1px solid #ddd; padding: 5px 12px; font-size: 11px; color: #357ce7; cursor: pointer; }
+  .cwv-toggle button:hover { background: #f0f5ff; border-color: #357ce7; }
+  .cwv-urls { display: none; padding: 0 16px 14px; border-top: 1px solid #f0f0f0; max-height: 320px; overflow-y: auto; }
+  .cwv-urls.open { display: block; }
+  .cwv-url-group-head { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: 10px 0 6px; border-bottom: 1px solid #f0f0f0; margin-bottom: 4px; }
+  .cwv-url-group-head.poor { color: #e81b9f; }
+  .cwv-url-group-head.needs-work { color: #a31db4; }
+  .cwv-url-group-head.good { color: #1b59b2; }
+  .cwv-url-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid #fafafa; gap: 8px; }
+  .cwv-url-row:last-child { border-bottom: none; }
+  .cwv-url-row a { color: #357ce7; font-size: 11px; text-decoration: none; word-break: break-all; flex: 1; }
+  .cwv-url-row a:hover { text-decoration: underline; }
+  .cwv-url-val { font-size: 11px; font-weight: 600; flex-shrink: 0; }
+  .cwv-url-val.poor { color: #e81b9f; }
+  .cwv-url-val.needs-work { color: #a31db4; }
+  .cwv-url-val.good { color: #1b59b2; }
+
+  @media (max-width: 768px) {
+    .cwv-grid { grid-template-columns: 1fr; }
+  }
+
+  .footer { text-align: center; padding: 20px; color: rgba(255,255,255,.7); font-size: 12px; }
+  .footer a { color: #fff; text-decoration: none; font-weight: 600; }
+
+  .save-indicator { position: fixed; bottom: 20px; right: 20px; background: #38a169; color: #fff; padding: 8px 16px; border-radius: 0; font-size: 12px; font-weight: 600; opacity: 0; transition: opacity .3s; z-index: 50; }
+  .save-indicator.show { opacity: 1; }
+
+  @media (max-width: 768px) {
+    .header { padding: 16px; flex-direction: column; gap: 8px; }
+    .summary-grid { grid-template-columns: repeat(2, 1fr); }
+    .stats { flex-direction: column; gap: 10px; }
+    table { display: block; overflow-x: auto; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <img src="https://cdn.gamma.app/k7vrwajzpduwe1o/d78119c355bf4703b043c52d00ab00f8/original/Searchable-Logo_Searchable-White-Blue-Logo.png" alt="Searchable">
+    <div>
+      <h1>___CLIENT___ - Technical SEO Analysis</h1>
+      <div class="meta">___DOMAIN___ | ___CRAWL_TYPE___ | ___DATE___</div>
+    </div>
+  </div>
+  <div class="header-right" style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+    <div class="date">Prepared ___DATE___</div>
+    <button onclick="saveToFile()" style="background:#357ce7;color:#fff;border:none;padding:7px 16px;font-size:12px;font-weight:600;cursor:pointer;letter-spacing:.03em">&#8681; Save File</button>
+  </div>
+</div>
+
+<div class="container">
+
+  <div class="summary-grid" id="summaryCards">
+    <div class="sc bl"><div class="n" id="total-count">10</div><div class="l">Issues Found</div><div class="tag">Total</div></div>
+    <div class="sc p1"><div class="n" id="p1-count">1</div><div class="l">Priority 1</div><div class="tag">Immediate</div></div>
+    <div class="sc p2"><div class="n" id="p2-count">3</div><div class="l">Priority 2</div><div class="tag">Important</div></div>
+    <div class="sc p3"><div class="n" id="p3-count">3</div><div class="l">Priority 3</div><div class="tag">Routine</div></div>
+    <div class="sc p4"><div class="n" id="p4-count">3</div><div class="l">Priority 4</div><div class="tag">Minor</div></div>
+  </div>
+
+  <div class="stats">
+    <div class="si"><div class="v">___URLS_ENCOUNTERED___</div><div class="k">URLs Encountered</div></div>
+    <div class="si"><div class="v">___INTERNAL_COUNT___</div><div class="k">Internal</div></div>
+    <div class="si"><div class="v">___EXTERNAL_COUNT___</div><div class="k">External</div></div>
+    <div class="si"><div class="v">___INDEXABLE_COUNT___</div><div class="k">Indexable</div></div>
+    <div class="si"><div class="v">___NON_INDEXABLE_COUNT___</div><div class="k">Non-Indexable</div></div>
+    <div class="si"><div class="v">___HTML_PAGES_COUNT___</div><div class="k">HTML Pages</div></div>
+  </div>
+
+  <div class="section" id="summaryBlock">
+    <h2>Summary</h2>
+    <div id="summaryStats" style="font-size:12px;color:#888;margin-bottom:12px;padding-left:8px"></div>
+    <div id="summaryText" contenteditable="true" style="font-size:13px;color:#444;line-height:1.8;outline:none;border:1px solid transparent;padding:8px;min-height:60px" onfocus="this.style.borderColor='#357ce7';this.style.background='#f8fbff'" onblur="this.style.borderColor='transparent';this.style.background='transparent';saveSummary()"></div>
+  </div>
+
+  <div class="section" id="cwv-section">
+    <h2>Core Web Vitals</h2>
+    <div class="cwv-tabs">
+      <button class="cwv-tab active" id="cwv-tab-mobile" onclick="setCwvDevice('mobile')">Mobile</button>
+      <button class="cwv-tab" id="cwv-tab-desktop" onclick="setCwvDevice('desktop')">Desktop</button>
+    </div>
+    <div class="cwv-grid" id="cwvGrid"></div>
+  </div>
+
+  <div class="section">
+    <h2>Prioritised Issues</h2>
+    <div class="toolbar">
+      <button onclick="toggleAllRows()">Expand / Collapse All</button>
+      <button onclick="filterBy('all')" class="active" id="f-all">All</button>
+      <button onclick="filterBy('ns')" id="f-ns">Not Started</button>
+      <button onclick="filterBy('ip')" id="f-ip">In Progress</button>
+      <button onclick="filterBy('dn')" id="f-dn">Complete</button>
+      <button onclick="openAddTask()" style="margin-left:auto;background:#357ce7;color:#fff;border-color:#357ce7;font-weight:600">+ Add Task</button>
+    </div>
+
+    <!-- Add Task Modal -->
+    <div class="modal-overlay" id="addTaskModal">
+      <div class="modal" style="max-width:600px">
+        <div class="modal-header">
+          <h3>Add Manual Task</h3>
+          <button class="modal-close" onclick="closeAddTask()">&times;</button>
+        </div>
+        <div class="modal-body" style="padding:20px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+            <div>
+              <label style="font-size:11px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px">Priority</label>
+              <select id="at-severity" style="width:100%;padding:7px 10px;border:1px solid #ddd;font-size:13px;font-family:inherit">
+                <option value="p1">P1 — Immediate</option>
+                <option value="p2" selected>P2 — Important</option>
+                <option value="p3">P3 — Routine</option>
+                <option value="p4">P4 — Minor</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px">Category</label>
+              <select id="at-category" style="width:100%;padding:7px 10px;border:1px solid #ddd;font-size:13px;font-family:inherit">
+                <option value="tech">Technical</option>
+                <option value="cont">Content</option>
+                <option value="auth">Authority</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px">Effort</label>
+              <select id="at-effort" style="width:100%;padding:7px 10px;border:1px solid #ddd;font-size:13px;font-family:inherit">
+                <option value="qf">Quick Fix</option>
+                <option value="mod" selected>Moderate</option>
+                <option value="sig">Significant</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px">URL Count</label>
+              <input id="at-urlcount" type="number" min="0" value="0" style="width:100%;padding:7px 10px;border:1px solid #ddd;font-size:13px;font-family:inherit">
+            </div>
+          </div>
+          <div style="margin-bottom:12px">
+            <label style="font-size:11px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px">Task Title *</label>
+            <input id="at-title" type="text" placeholder="e.g. Fix broken canonical tags" style="width:100%;padding:7px 10px;border:1px solid #ddd;font-size:13px;font-family:inherit">
+          </div>
+          <div style="margin-bottom:12px">
+            <label style="font-size:11px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px">Description</label>
+            <textarea id="at-desc" rows="3" placeholder="Explain the issue and why it matters..." style="width:100%;padding:7px 10px;border:1px solid #ddd;font-size:13px;font-family:inherit;resize:vertical"></textarea>
+          </div>
+          <div style="margin-bottom:12px">
+            <label style="font-size:11px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px">How to Fix (one step per line)</label>
+            <textarea id="at-fix" rows="3" placeholder="Step 1&#10;Step 2&#10;Step 3" style="width:100%;padding:7px 10px;border:1px solid #ddd;font-size:13px;font-family:inherit;resize:vertical"></textarea>
+          </div>
+          <div style="margin-bottom:20px">
+            <label style="font-size:11px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px">Affected URLs (one per line)</label>
+            <textarea id="at-urls" rows="3" placeholder="https://example.com/page-1&#10;https://example.com/page-2" style="width:100%;padding:7px 10px;border:1px solid #ddd;font-size:13px;font-family:inherit;resize:vertical"></textarea>
+          </div>
+          <div style="display:flex;gap:8px;justify-content:flex-end">
+            <button class="modal-btn outline" onclick="closeAddTask()">Cancel</button>
+            <button class="modal-btn" onclick="submitAddTask()">Add Task</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <table id="issueTable">
+      <thead>
+        <tr>
+          <th style="width:80px">Priority</th>
+          <th style="width:30px">#</th>
+          <th>Task</th>
+          <th style="width:90px">Category</th>
+          <th style="width:90px">Effort</th>
+          <th style="width:70px">URLs</th>
+          <th style="width:100px">Status</th>
+          <th style="width:30px"></th>
+          <th style="width:30px"></th>
+        </tr>
+      </thead>
+      <tbody id="issueBody">
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section" id="pagespeed-section">
+    <h2>PageSpeed - Pages by Issue Type</h2>
+    <div id="ps-summary-block"></div>
+    <div id="psPages"></div>
+  </div>
+
+</div>
+
+<div class="modal-overlay" id="urlModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">Affected URLs</h3>
+      <div class="modal-actions">
+        <button class="modal-btn outline" onclick="copyUrls()">Copy All URLs</button>
+        <span class="copy-success" id="copySuccess">Copied!</span>
+      </div>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<div class="save-indicator" id="saveIndicator">Changes saved</div>
+
+<div class="footer">
+  Prepared by <a href="https://besearchable.io">Searchable</a> | ___DATE___ | Confidential
+</div>
+
+<script>
+// Issue data - populated server-side from Claude analysis
+var issues = ___ISSUES_JSON___; /*[SAVE:issues]*/
+
+var currentFilter = 'all';
+var categoryLabels = { tech: "Technical", cont: "Content", auth: "Authority" };
+var categoryClasses = { tech: "tech", cont: "cont", auth: "auth" };
+var effortLabels = { qf: "Quick fix", mod: "Moderate", sig: "Significant" };
+var effortOrder = ["qf", "mod", "sig"];
+var effortClasses = { qf: "qf", mod: "mod", sig: "sig" };
+var statusLabels = { ns: "Not Started", ip: "In Progress", dn: "Complete" };
+var statusOrder = ["ns", "ip", "dn"];
+var statusClasses = { ns: "ns", ip: "ip", dn: "dn" };
+var severityLabels = { p1: "Immediate", p2: "Important", p3: "Routine", p4: "Minor" };
+
+// Load saved state
+var saved = localStorage.getItem('audit-___CLIENT_SLUG___');
+if (saved) {
+  try {
+    var savedData = JSON.parse(saved);
+    savedData.forEach(function(s) {
+      var issue = issues.find(function(i) { return i.id === s.id; });
+      if (issue) {
+        if (s.status) issue.status = s.status;
+        if (s.effort) issue.effort = s.effort;
+        if (s.severity) issue.severity = s.severity;
+      }
+    });
+    // Restore order
+    if (savedData.length === issues.length) {
+      var ordered = [];
+      savedData.forEach(function(s) {
+        var issue = issues.find(function(i) { return i.id === s.id; });
+        if (issue) ordered.push(issue);
+      });
+      if (ordered.length === issues.length) issues = ordered;
+    }
+  } catch(e) {}
+}
+
+function saveState() {
+  var data = issues.map(function(i) { return { id: i.id, status: i.status, effort: i.effort, severity: i.severity }; });
+  localStorage.setItem('audit-___CLIENT_SLUG___', JSON.stringify(data));
+  var ind = document.getElementById('saveIndicator');
+  ind.classList.add('show');
+  setTimeout(function() { ind.classList.remove('show'); }, 1500);
+}
+
+function renderTable() {
+  var tbody = document.getElementById('issueBody');
+  tbody.innerHTML = '';
+  var counts = { p1: 0, p2: 0, p3: 0, p4: 0 };
+
+  issues.forEach(function(issue, idx) {
+    counts[issue.severity]++;
+    var show = currentFilter === 'all' || issue.status === currentFilter;
+    var mainRow = document.createElement('tr');
+    mainRow.className = 'toggle';
+    mainRow.draggable = true;
+    mainRow.dataset.idx = idx;
+    mainRow.style.display = show ? '' : 'none';
+    mainRow.onclick = function(e) {
+      if (e.target.closest('.clickable') || e.target.closest('.pri') || e.target.closest('.arrow')) { toggleRow(issue.id); return; }
+    };
+    mainRow.ondragstart = function(e) { e.dataTransfer.setData('text/plain', idx); this.classList.add('dragging'); };
+    mainRow.ondragend = function() { this.classList.remove('dragging'); };
+    mainRow.ondragover = function(e) { e.preventDefault(); this.classList.add('drag-over'); };
+    mainRow.ondragleave = function() { this.classList.remove('drag-over'); };
+    mainRow.ondrop = function(e) {
+      e.preventDefault();
+      this.classList.remove('drag-over');
+      var fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
+      var toIdx = parseInt(this.dataset.idx);
+      if (fromIdx !== toIdx) {
+        var moved = issues.splice(fromIdx, 1)[0];
+        issues.splice(toIdx, 0, moved);
+        saveState();
+        renderTable();
+      }
+    };
+
+    mainRow.innerHTML =
+      '<td><div class="pri-cell"><span class="drag-handle">&#9776;</span><span class="pri ' + issue.severity + '" onclick="event.stopPropagation(); cyclePriority(\'' + issue.id + '\')" title="Click to change priority">' + issue.severity.toUpperCase() + '</span></div></td>' +
+      '<td style="font-size:11px;color:#888;font-weight:500">' + (idx + 1) + '</td>' +
+      '<td><span class="clickable" style="font-weight:500;color:#333">' + issue.title + '</span></td>' +
+      '<td><span class="b ' + categoryClasses[issue.category] + '">' + categoryLabels[issue.category] + '</span></td>' +
+      '<td><span class="b ' + effortClasses[issue.effort] + '" onclick="event.stopPropagation(); cycleEffort(\'' + issue.id + '\')">' + effortLabels[issue.effort] + '</span></td>' +
+      '<td><a class="url-link" href="#" onclick="event.stopPropagation(); showUrls(\'' + issue.id + '\')">' + issue.urlCount + ' URLs</a></td>' +
+      '<td><span class="st ' + statusClasses[issue.status] + '" onclick="event.stopPropagation(); cycleStatus(\'' + issue.id + '\')">' + statusLabels[issue.status] + '</span></td>' +
+      '<td><span class="arrow" id="a-' + issue.id + '">&#9654;</span></td>' +
+      '<td><button class="del-btn" onclick="event.stopPropagation(); deleteIssue(\'' + issue.id + '\')" title="Delete task">&#10005;</button></td>';
+    tbody.appendChild(mainRow);
+
+    var detailRow = document.createElement('tr');
+    detailRow.className = 'detail-row';
+    detailRow.id = issue.id;
+    detailRow.style.display = show ? '' : 'none';
+    var fixHtml = '<ul>' + issue.fix.map(function(f) { return '<li>' + f + '</li>'; }).join('') + '</ul>';
+    var urlSample = issue.urls.map(function(u) { return '<code>' + u + '</code>'; }).join(', ');
+    detailRow.innerHTML =
+      '<td colspan="9" class="detail-cell">' +
+      '<h4>Description</h4><p>' + issue.description + '</p>' +
+      '<h4>How to Fix</h4>' + fixHtml +
+      '<h4>Affected URLs</h4><p>' + urlSample + '</p>' +
+      '</td>';
+    tbody.appendChild(detailRow);
+  });
+
+  document.getElementById('total-count').textContent = issues.length;
+  document.getElementById('p1-count').textContent = counts.p1;
+  document.getElementById('p2-count').textContent = counts.p2;
+  document.getElementById('p3-count').textContent = counts.p3;
+  document.getElementById('p4-count').textContent = counts.p4;
+
+  var doneCount = issues.filter(function(i) { return i.status === 'dn'; }).length;
+  document.getElementById('summaryStats').textContent = 'Resolved: ' + doneCount + '/' + issues.length;
+}
+
+function toggleRow(id) {
+  var row = document.getElementById(id);
+  var arrow = document.getElementById('a-' + id);
+  if (row) { row.classList.toggle('open'); }
+  if (arrow) { arrow.classList.toggle('open'); }
+}
+
+function toggleAllRows() {
+  var rows = document.querySelectorAll('.detail-row');
+  var allOpen = [...rows].every(function(r) { return r.classList.contains('open'); });
+  rows.forEach(function(r) {
+    var arrow = document.getElementById('a-' + r.id);
+    if (allOpen) { r.classList.remove('open'); if (arrow) arrow.classList.remove('open'); }
+    else { r.classList.add('open'); if (arrow) arrow.classList.add('open'); }
+  });
+}
+
+var severityOrder = ["p1", "p2", "p3", "p4"];
+
+function cyclePriority(id) {
+  var issue = issues.find(function(i) { return i.id === id; });
+  if (!issue) return;
+  var idx = severityOrder.indexOf(issue.severity);
+  issue.severity = severityOrder[(idx + 1) % severityOrder.length];
+  saveState();
+  renderTable();
+  setTimeout(function() { sortByPriority(); saveState(); renderTable(); }, 2000);
+}
+
+function sortByPriority() {
+  issues.sort(function(a, b) {
+    return severityOrder.indexOf(a.severity) - severityOrder.indexOf(b.severity);
+  });
+}
+
+function deleteIssue(id) {
+  if (!confirm('Delete this task?')) return;
+  issues = issues.filter(function(i) { return i.id !== id; });
+  saveState();
+  renderTable();
+}
+
+function cycleStatus(id) {
+  var issue = issues.find(function(i) { return i.id === id; });
+  if (!issue) return;
+  var idx = statusOrder.indexOf(issue.status);
+  issue.status = statusOrder[(idx + 1) % statusOrder.length];
+  saveState();
+  renderTable();
+}
+
+function cycleEffort(id) {
+  var issue = issues.find(function(i) { return i.id === id; });
+  if (!issue) return;
+  var idx = effortOrder.indexOf(issue.effort);
+  issue.effort = effortOrder[(idx + 1) % effortOrder.length];
+  saveState();
+  renderTable();
+}
+
+function filterBy(status) {
+  currentFilter = status;
+  document.querySelectorAll('.toolbar button').forEach(function(b) { b.classList.remove('active'); });
+  document.getElementById('f-' + status).classList.add('active');
+  renderTable();
+}
+
+var currentModalUrls = [];
+
+function showUrls(id) {
+  var issue = issues.find(function(i) { return i.id === id; });
+  if (!issue) return;
+  currentModalUrls = issue.urls;
+  document.getElementById('modalTitle').textContent = issue.title + ' — ' + issue.urlCount + ' affected URLs';
+  document.getElementById('copySuccess').classList.remove('show');
+  var html = '<table><thead><tr><th style="width:40px">#</th><th>URL / Resource</th></tr></thead><tbody>';
+  issue.urls.forEach(function(u, i) {
+    html += '<tr><td>' + (i + 1) + '</td><td><code>' + u + '</code></td></tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('modalBody').innerHTML = html;
+  document.getElementById('urlModal').classList.add('open');
+}
+
+function copyUrls() {
+  var text = currentModalUrls.join('\n');
+  navigator.clipboard.writeText(text).then(function() {
+    var el = document.getElementById('copySuccess');
+    el.classList.add('show');
+    setTimeout(function() { el.classList.remove('show'); }, 2000);
+  });
+}
+
+function closeModal() {
+  document.getElementById('urlModal').classList.remove('open');
+}
+
+document.getElementById('urlModal').onclick = function(e) {
+  if (e.target === this) closeModal();
+};
+
+// PageSpeed data — grouped by issue category
+// Claude populates this from SF PageSpeed export
+var pagespeedCategories = ___PAGESPEED_CATEGORIES_JSON___;
+
+// Legacy format for backward compat
+var pagespeedData = ___PAGESPEED_DATA_JSON___;
+
+function scoreClass(v) { return v >= 90 ? 'good' : v >= 50 ? 'needs-work' : 'poor'; }
+
+function renderPageSpeed() {
+  var container = document.getElementById('psPages');
+  container.innerHTML = '';
+
+  pagespeedCategories.forEach(function(cat, idx) {
+    var cid = 'psc-' + idx;
+    var div = document.createElement('div');
+    div.className = 'ps-category';
+
+    var severityDot = cat.severity === 'error' ? '#e53e3e' : cat.severity === 'warning' ? '#d69e2e' : '#357ce7';
+
+    var headerHtml = '<div class="ps-cat-header" onclick="togglePS(\'' + cid + '\')">' +
+      '<div style="width:8px;height:8px;border-radius:50%;background:' + severityDot + ';flex-shrink:0"></div>' +
+      '<div class="ps-cat-title">' + cat.name + '</div>' +
+      '<div class="ps-cat-actions">' +
+        '<div class="ps-cat-count"><strong>' + cat.pageCount + '</strong> page' + (cat.pageCount !== 1 ? 's' : '') + '</div>' +
+        '<button class="ps-copy-btn" id="pscopy-' + cid + '" onclick="event.stopPropagation(); copyPsUrls(\'' + cid + '\', ' + idx + ')">Copy URLs</button>' +
+      '</div>' +
+      '<span class="ps-arrow" id="psa-' + cid + '">&#9654;</span>' +
+    '</div>';
+
+    var bodyHtml = '<div class="ps-cat-body" id="' + cid + '">';
+
+    // Fix recommendation
+    bodyHtml += '<div class="ps-cat-fix"><div class="ps-cat-fix-title">Recommended Fix</div><ul>';
+    cat.fix.forEach(function(f) { bodyHtml += '<li>' + f + '</li>'; });
+    bodyHtml += '</ul></div>';
+
+    // Affected pages table
+    bodyHtml += '<div class="ps-url-list"><table style="table-layout:fixed"><thead><tr>' +
+      '<th style="width:auto">URL</th><th style="width:65px;text-align:center">Score</th><th style="width:65px;text-align:center">LCP</th><th style="width:130px;text-align:right;padding-right:16px">Savings</th>' +
+      '</tr></thead><tbody>';
+    cat.pages.forEach(function(p) {
+      bodyHtml += '<tr>' +
+        '<td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><a href="' + p.url + '" target="_blank" style="color:#357ce7;text-decoration:none;font-size:12px">' + p.url + '</a></td>' +
+        '<td style="text-align:center"><span class="ps-metric-inline ' + scoreClass(p.score) + '">' + p.score + '</span></td>' +
+        '<td style="text-align:center"><span class="ps-metric-inline ' + (p.lcp <= 2.5 ? 'good' : p.lcp <= 4 ? 'needs-work' : 'poor') + '">' + p.lcp + 's</span></td>' +
+        '<td style="text-align:right;padding-right:16px;white-space:nowrap">' + p.savings + '</td>' +
+      '</tr>';
+    });
+    bodyHtml += '</tbody></table></div>';
+
+    bodyHtml += '</div>';
+
+    div.innerHTML = headerHtml + bodyHtml;
+    container.appendChild(div);
+  });
+}
+
+function renderPsSummary() {
+  var container = document.getElementById('ps-summary-block');
+  if (!container) return;
+  var scores = (cwvDataMobile || []).map(function(p) { return p.score; }).filter(function(s) { return s != null && !isNaN(parseFloat(s)); });
+  if (scores.length === 0) { container.innerHTML = ''; return; }
+  var avg = Math.round(scores.reduce(function(a, b) { return a + parseFloat(b); }, 0) / scores.length);
+  var cls = avg >= 90 ? 'good' : avg >= 50 ? 'needs-work' : 'poor';
+  var rating = avg >= 90 ? 'Good' : avg >= 50 ? 'Needs Improvement' : 'Poor';
+  var defaultText =
+    '<strong style="font-size:14px;color:#00142a">Average Performance Score — ' + rating + '</strong><br>' +
+    'Across ' + scores.length + ' page' + (scores.length !== 1 ? 's' : '') + ' tested via Google PageSpeed Insights (mobile). A score of ' + avg + '/100 indicates ' +
+    (avg >= 90 ? 'strong page performance with minimal impact on user experience.' :
+     avg >= 50 ? 'moderate performance — there are meaningful opportunities to improve load speed and user experience.' :
+     'significant performance issues that are likely affecting user experience and may be impacting organic rankings.') +
+    ' The issue categories below break down the root causes affecting the most pages.';
+  var savedText = psSummaryOverride || localStorage.getItem('audit-___CLIENT_SLUG___-ps-summary');
+  container.innerHTML =
+    '<div class="ps-summary-card">' +
+      '<div class="ps-summary-score-num ' + cls + '">' + avg + '<span style="font-size:18px;font-weight:400">/100</span></div>' +
+      '<div class="ps-summary-text" id="ps-summary-text" contenteditable="true" style="outline:none;border:1px solid transparent;padding:4px;border-radius:2px" ' +
+        'onfocus="this.style.borderColor=\'#357ce7\';this.style.background=\'#f8fbff\'" ' +
+        'onblur="this.style.borderColor=\'transparent\';this.style.background=\'transparent\';savePsSummary()">' +
+        (savedText || defaultText) +
+      '</div>' +
+    '</div>';
+}
+function savePsSummary() {
+  var el = document.getElementById('ps-summary-text');
+  if (el) localStorage.setItem('audit-___CLIENT_SLUG___-ps-summary', el.innerHTML);
+  var ind = document.getElementById('saveIndicator');
+  ind.classList.add('show');
+  setTimeout(function() { ind.classList.remove('show'); }, 1500);
+}
+
+function copyPsUrls(cid, catIdx) {
+  var cat = pagespeedCategories[catIdx];
+  if (!cat) return;
+  var text = cat.pages.map(function(p) { return p.url; }).join('\n');
+  navigator.clipboard.writeText(text).then(function() {
+    var btn = document.getElementById('pscopy-' + cid);
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(function() { btn.textContent = 'Copy URLs'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+function togglePS(id) {
+  var body = document.getElementById(id);
+  var arrow = document.getElementById('psa-' + id);
+  if (body) body.classList.toggle('open');
+  if (arrow) arrow.classList.toggle('open');
+}
+
+// Editable summary — load saved or use default
+var defaultSummary = `___SUMMARY_HTML___`; /*[SAVE:summary]*/
+var psSummaryOverride = null; /*[SAVE:pssummary]*/
+
+var savedSummary = localStorage.getItem('audit-___CLIENT_SLUG___-summary');
+document.getElementById('summaryText').innerHTML = savedSummary || defaultSummary;
+
+function saveSummary() {
+  localStorage.setItem('audit-___CLIENT_SLUG___-summary', document.getElementById('summaryText').innerHTML);
+  var ind = document.getElementById('saveIndicator');
+  ind.classList.add('show');
+  setTimeout(function() { ind.classList.remove('show'); }, 1500);
+}
+
+// Core Web Vitals data — populated from SF PageSpeed export (mobile + desktop strategies)
+// Each URL has separate mobile and desktop measurements
+// Per-device data populated server-side from Screaming Frog PageSpeed export
+var cwvDataMobile = ___CWV_MOBILE_JSON___;
+var cwvDataDesktop = ___CWV_DESKTOP_JSON___;
+
+// Merge per-URL into the {url, mobile, desktop} structure renderCwv() expects
+function mergeCwvData(mobile, desktop) {
+  var byUrl = {};
+  (mobile || []).forEach(function(m) {
+    byUrl[m.url] = { url: m.url, mobile: { lcp: m.lcp, cls: m.cls, inp: m.inp, score: m.score }, desktop: null };
+  });
+  (desktop || []).forEach(function(d) {
+    if (byUrl[d.url]) {
+      byUrl[d.url].desktop = { lcp: d.lcp, cls: d.cls, inp: d.inp, score: d.score };
+    } else {
+      byUrl[d.url] = { url: d.url, mobile: null, desktop: { lcp: d.lcp, cls: d.cls, inp: d.inp, score: d.score } };
+    }
+  });
+  var out = [];
+  for (var k in byUrl) { if (byUrl.hasOwnProperty(k)) out.push(byUrl[k]); }
+  return out;
+}
+var cwvData = mergeCwvData(cwvDataMobile, cwvDataDesktop);
+
+// Thresholds: LCP good ≤2.5s / NW ≤4.0s / poor >4.0s
+//             INP good ≤200ms / NW ≤500ms / poor >500ms
+//             CLS good ≤0.1 / NW ≤0.25 / poor >0.25
+function bucketLcp(v) { return v <= 2.5 ? 'good' : v <= 4 ? 'needs-work' : 'poor'; }
+function bucketInp(v) { return v <= 200 ? 'good' : v <= 500 ? 'needs-work' : 'poor'; }
+function bucketCls(v) { return v <= 0.1 ? 'good' : v <= 0.25 ? 'needs-work' : 'poor'; }
+
+function overallStatus(counts) {
+  var total = counts.good + counts['needs-work'] + counts.poor;
+  if (total === 0) return 'good';
+  if (counts.poor / total >= 0.25) return 'poor';
+  if (counts.good / total >= 0.75) return 'good';
+  return 'needs-work';
+}
+
+function statusLabel(s) { return s === 'good' ? 'Good' : s === 'needs-work' ? 'Needs Improvement' : 'Poor'; }
+
+var currentCwvDevice = 'mobile';
+
+function setCwvDevice(device) {
+  currentCwvDevice = device;
+  document.getElementById('cwv-tab-mobile').classList.toggle('active', device === 'mobile');
+  document.getElementById('cwv-tab-desktop').classList.toggle('active', device === 'desktop');
+  renderCwv();
+}
+
+function renderCwv() {
+  var metrics = [
+    { key: 'lcp', label: 'LCP', name: 'Largest Contentful Paint', bucket: bucketLcp, format: function(v) { return v + 's'; }, ranges: { good: '≤2.5s', 'needs-work': '2.5-4.0s', poor: '>4.0s' } },
+    { key: 'inp', label: 'INP', name: 'Interaction to Next Paint', bucket: bucketInp, format: function(v) { return v + 'ms'; }, ranges: { good: '≤200ms', 'needs-work': '200-500ms', poor: '>500ms' } },
+    { key: 'cls', label: 'CLS', name: 'Cumulative Layout Shift',  bucket: bucketCls, format: function(v) { return v.toFixed(2); }, ranges: { good: '≤0.10', 'needs-work': '0.10-0.25', poor: '>0.25' } }
+  ];
+
+  var container = document.getElementById('cwvGrid');
+  container.innerHTML = '';
+
+  metrics.forEach(function(m, mi) {
+    var counts = { good: 0, 'needs-work': 0, poor: 0 };
+    var groups = { poor: [], 'needs-work': [], good: [] };
+
+    cwvData.forEach(function(p) {
+      var deviceData = p[currentCwvDevice];
+      if (!deviceData) return;
+      var v = deviceData[m.key];
+      if (v == null) return;
+      var b = m.bucket(v);
+      counts[b]++;
+      groups[b].push({ url: p.url, value: v });
+    });
+
+    // Sort each group worst-first
+    ['good','needs-work','poor'].forEach(function(b) {
+      groups[b].sort(function(a, c) { return c.value - a.value; });
+    });
+
+    var total = counts.good + counts['needs-work'] + counts.poor;
+    var status = overallStatus(counts);
+    var pct = function(n) { return total ? Math.round((n / total) * 100) : 0; };
+    var deviceLabel = currentCwvDevice.charAt(0).toUpperCase() + currentCwvDevice.slice(1);
+    var subText = total + ' URLs assessed · ' + deviceLabel;
+
+    var html = '<div class="cwv-card">' +
+      '<div class="cwv-card-head">' +
+        '<div class="cwv-icon ' + status + '">' + m.label + '</div>' +
+        '<div class="cwv-meta"><div class="name">' + m.name + '</div><div class="sub">' + subText + '</div></div>' +
+        '<span class="cwv-status ' + status + '">' + statusLabel(status) + '</span>' +
+      '</div>' +
+      '<div class="cwv-bars">' +
+        '<div class="cwv-bar-row"><div class="cwv-bar-label">Good</div><div class="cwv-bar-track"><div class="cwv-bar-fill good" style="width:' + pct(counts.good) + '%"></div></div><div class="cwv-bar-count">' + counts.good + '</div></div>' +
+        '<div class="cwv-bar-row"><div class="cwv-bar-label">Needs Imp.</div><div class="cwv-bar-track"><div class="cwv-bar-fill needs-work" style="width:' + pct(counts['needs-work']) + '%"></div></div><div class="cwv-bar-count">' + counts['needs-work'] + '</div></div>' +
+        '<div class="cwv-bar-row"><div class="cwv-bar-label">Poor</div><div class="cwv-bar-track"><div class="cwv-bar-fill poor" style="width:' + pct(counts.poor) + '%"></div></div><div class="cwv-bar-count">' + counts.poor + '</div></div>' +
+      '</div>' +
+      '<div class="cwv-toggle"><button onclick="toggleCwvUrls(' + mi + ')">View affected URLs</button></div>' +
+      '<div class="cwv-urls" id="cwv-urls-' + mi + '">';
+
+    ['poor','needs-work','good'].forEach(function(b) {
+      if (groups[b].length === 0) return;
+      html += '<div class="cwv-url-group-head ' + b + '">' + statusLabel(b) + ' (' + m.ranges[b] + ') — ' + groups[b].length + ' URL' + (groups[b].length !== 1 ? 's' : '') + '</div>';
+      groups[b].forEach(function(g) {
+        html += '<div class="cwv-url-row"><a href="' + g.url + '" target="_blank">' + g.url + '</a><span class="cwv-url-val ' + b + '">' + m.format(g.value) + '</span></div>';
+      });
+    });
+
+    html += '</div></div>';
+    container.insertAdjacentHTML('beforeend', html);
+  });
+}
+
+function toggleCwvUrls(idx) {
+  document.getElementById('cwv-urls-' + idx).classList.toggle('open');
+}
+
+// Add Task modal
+function openAddTask() {
+  document.getElementById('at-title').value = '';
+  document.getElementById('at-desc').value = '';
+  document.getElementById('at-fix').value = '';
+  document.getElementById('at-urls').value = '';
+  document.getElementById('at-urlcount').value = '0';
+  document.getElementById('at-severity').value = 'p2';
+  document.getElementById('at-category').value = 'tech';
+  document.getElementById('at-effort').value = 'mod';
+  document.getElementById('addTaskModal').classList.add('open');
+  setTimeout(function() { document.getElementById('at-title').focus(); }, 100);
+}
+function closeAddTask() {
+  document.getElementById('addTaskModal').classList.remove('open');
+}
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('addTaskModal').addEventListener('click', function(e) {
+    if (e.target === this) closeAddTask();
+  });
+});
+function submitAddTask() {
+  var title = document.getElementById('at-title').value.trim();
+  if (!title) { document.getElementById('at-title').style.borderColor = '#e53e3e'; document.getElementById('at-title').focus(); return; }
+  document.getElementById('at-title').style.borderColor = '#ddd';
+  var fixLines = document.getElementById('at-fix').value.split('\n').map(function(l) { return l.trim(); }).filter(Boolean);
+  var urlLines = document.getElementById('at-urls').value.split('\n').map(function(l) { return l.trim(); }).filter(Boolean);
+  var urlCount = parseInt(document.getElementById('at-urlcount').value) || urlLines.length;
+  var newIssue = {
+    id: 'manual-' + Date.now(),
+    title: title,
+    description: document.getElementById('at-desc').value.trim() || 'Manually added task.',
+    fix: fixLines.length ? fixLines : ['Review and address as needed.'],
+    severity: document.getElementById('at-severity').value,
+    category: document.getElementById('at-category').value,
+    effort: document.getElementById('at-effort').value,
+    status: 'ns',
+    urlCount: urlCount,
+    urls: urlLines
+  };
+  issues.push(newIssue);
+  sortByPriority();
+  saveState();
+  renderTable();
+  closeAddTask();
+}
+
+// Save File — writes current state directly back to the HTML file (Chrome/Edge only)
+var _saveFileHandle = null;
+function saveToFile() {
+  if (!window.showSaveFilePicker) {
+    alert('Direct file saving requires Chrome or Edge. Use the Export button instead, or open the file in Chrome.');
+    return;
+  }
+  var summaryEl = document.getElementById('summaryText');
+  var currentSummary = summaryEl ? summaryEl.innerHTML : '';
+  var psSummaryEl = document.getElementById('ps-summary-text');
+  var currentPsSummary = psSummaryEl ? psSummaryEl.innerHTML : null;
+  var html = document.documentElement.outerHTML;
+  // Bake in current issues state
+  html = html.replace(
+    /var issues\s*=\s*([\s\S]*?);\s*\/\*\[SAVE:issues\]\*\//,
+    'var issues = ' + JSON.stringify(issues) + '; /*[SAVE:issues]*/'
+  );
+  // Bake in current summary text
+  html = html.replace(
+    /var defaultSummary\s*=\s*`[\s\S]*?`;\s*\/\*\[SAVE:summary\]\*\//,
+    'var defaultSummary = `' + currentSummary.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$\{/g, '\\${') + '`; /*[SAVE:summary]*/'
+  );
+  // Bake in PS summary override
+  if (currentPsSummary) {
+    html = html.replace(
+      /var psSummaryOverride\s*=\s*[\s\S]*?;\s*\/\*\[SAVE:pssummary\]\*\//,
+      'var psSummaryOverride = `' + currentPsSummary.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$\{/g, '\\${') + '`; /*[SAVE:pssummary]*/'
+    );
+  }
+  html = '<!DOCTYPE html>\n' + html;
+  var doWrite = function(handle) {
+    handle.createWritable().then(function(writable) {
+      writable.write(html).then(function() {
+        writable.close().then(function() {
+          var ind = document.getElementById('saveIndicator');
+          ind.style.background = '#357ce7';
+          ind.textContent = 'File saved ✓';
+          ind.classList.add('show');
+          setTimeout(function() {
+            ind.classList.remove('show');
+            setTimeout(function() { ind.style.background = '#38a169'; ind.textContent = 'Changes saved'; }, 300);
+          }, 2000);
+        });
+      });
+    });
+  };
+  if (_saveFileHandle) {
+    doWrite(_saveFileHandle);
+  } else {
+    window.showSaveFilePicker({
+      suggestedName: 'index.html',
+      types: [{ description: 'HTML File', accept: { 'text/html': ['.html'] } }]
+    }).then(function(handle) {
+      _saveFileHandle = handle;
+      doWrite(handle);
+    }).catch(function(e) { if (e.name !== 'AbortError') console.error(e); });
+  }
+}
+
+// Filter PageSpeed/CWV issues out of Prioritised Issues — these are covered in dedicated sections below
+var psKeywords = [
+  'render-block', 'unused javascript', 'unused css', 'main-thread', 'javascript execution',
+  'network payload', 'image delivery', 'cache lifetime', 'font display', 'legacy javascript',
+  'forced reflow', 'carbon', 'pagespeed', 'page speed', 'core web vital', 'cumulative layout',
+  'largest contentful', 'interaction to next', 'total blocking', 'excessive javascript',
+  'large network', 'text compression', 'offscreen image', 'properly size', 'next-gen format',
+  'efficiently encode', 'serve scaled', 'preload key', 'avoid chaining', 'dom size',
+  'third-party code', 'avoid enormous', 'reduce unused', 'eliminate render', 'unminified',
+  'minif', 'web vitals', 'performance score', 'page load', 'time to interactive'
+];
+issues = issues.filter(function(issue) {
+  var t = issue.title.toLowerCase();
+  return !psKeywords.some(function(kw) { return t.indexOf(kw) !== -1; });
+});
+
+renderTable();
+renderCwv();
+renderPageSpeed();
+renderPsSummary();
+</script>
+
+</body>
+</html>
