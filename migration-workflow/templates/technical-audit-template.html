@@ -886,6 +886,7 @@ function submitAddTask() {
     urls: urlLines
   };
   issues.push(newIssue);
+  sortByPriority();
   saveState();
   renderTable();
   closeAddTask();
@@ -941,7 +942,7 @@ function saveToFile() {
     doWrite(_saveFileHandle);
   } else {
     window.showSaveFilePicker({
-      suggestedName: 'technical-audit-report.html',
+      suggestedName: 'index.html',
       types: [{ description: 'HTML File', accept: { 'text/html': ['.html'] } }]
     }).then(function(handle) {
       _saveFileHandle = handle;
