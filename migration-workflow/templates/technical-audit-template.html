@@ -472,10 +472,10 @@ function renderTable() {
     mainRow.innerHTML =
       '<td><div class="pri-cell"><span class="drag-handle">&#9776;</span><span class="pri ' + issue.severity + '" onclick="event.stopPropagation(); cyclePriority(\'' + issue.id + '\')" title="Click to change priority">' + issue.severity.toUpperCase() + '</span></div></td>' +
       '<td style="font-size:11px;color:#888;font-weight:500">' + (idx + 1) + '</td>' +
-      '<td><span class="clickable" style="font-weight:500;color:#333">' + issue.title + '</span></td>' +
+      '<td><span class="clickable" style="font-weight:500;color:#333">' + issue.name + '</span></td>' +
       '<td><span class="b ' + categoryClasses[issue.category] + '">' + categoryLabels[issue.category] + '</span></td>' +
       '<td><span class="b ' + effortClasses[issue.effort] + '" onclick="event.stopPropagation(); cycleEffort(\'' + issue.id + '\')">' + effortLabels[issue.effort] + '</span></td>' +
-      '<td><a class="url-link" href="#" onclick="event.stopPropagation(); showUrls(\'' + issue.id + '\')">' + issue.urlCount + ' URLs</a></td>' +
+      '<td><a class="url-link" href="#" onclick="event.stopPropagation(); showUrls(\'' + issue.id + '\')">' + issue.url_count + ' URLs</a></td>' +
       '<td><span class="st ' + statusClasses[issue.status] + '" onclick="event.stopPropagation(); cycleStatus(\'' + issue.id + '\')">' + statusLabels[issue.status] + '</span></td>' +
       '<td><span class="arrow" id="a-' + issue.id + '">&#9654;</span></td>' +
       '<td><button class="del-btn" onclick="event.stopPropagation(); deleteIssue(\'' + issue.id + '\')" title="Delete task">&#10005;</button></td>';
@@ -579,7 +579,7 @@ function showUrls(id) {
   var issue = issues.find(function(i) { return i.id === id; });
   if (!issue) return;
   currentModalUrls = issue.urls;
-  document.getElementById('modalTitle').textContent = issue.title + ' — ' + issue.urlCount + ' affected URLs';
+  document.getElementById('modalTitle').textContent = issue.name + ' — ' + issue.url_count + ' affected URLs';
   document.getElementById('copySuccess').classList.remove('show');
   var html = '<table><thead><tr><th style="width:40px">#</th><th>URL / Resource</th></tr></thead><tbody>';
   issue.urls.forEach(function(u, i) {
@@ -610,9 +610,6 @@ document.getElementById('urlModal').onclick = function(e) {
 // PageSpeed data — grouped by issue category
 // Claude populates this from SF PageSpeed export
 var pagespeedCategories = ___PAGESPEED_CATEGORIES_JSON___;
-
-// Legacy format for backward compat
-var pagespeedData = ___PAGESPEED_DATA_JSON___;
 
 function scoreClass(v) { return v >= 90 ? 'good' : v >= 50 ? 'needs-work' : 'poor'; }
 
@@ -884,14 +881,14 @@ function submitAddTask() {
   var urlCount = parseInt(document.getElementById('at-urlcount').value) || urlLines.length;
   var newIssue = {
     id: 'manual-' + Date.now(),
-    title: title,
+    name: title,
     description: document.getElementById('at-desc').value.trim() || 'Manually added task.',
     fix: fixLines.length ? fixLines : ['Review and address as needed.'],
     severity: document.getElementById('at-severity').value,
     category: document.getElementById('at-category').value,
     effort: document.getElementById('at-effort').value,
     status: 'ns',
-    urlCount: urlCount,
+    url_count: urlCount,
     urls: urlLines
   };
   issues.push(newIssue);
@@ -960,20 +957,9 @@ function saveToFile() {
   }
 }
 
-// Filter PageSpeed/CWV issues out of Prioritised Issues — these are covered in dedicated sections below
-var psKeywords = [
-  'render-block', 'unused javascript', 'unused css', 'main-thread', 'javascript execution',
-  'network payload', 'image delivery', 'cache lifetime', 'font display', 'legacy javascript',
-  'forced reflow', 'carbon', 'pagespeed', 'page speed', 'core web vital', 'cumulative layout',
-  'largest contentful', 'interaction to next', 'total blocking', 'excessive javascript',
-  'large network', 'text compression', 'offscreen image', 'properly size', 'next-gen format',
-  'efficiently encode', 'serve scaled', 'preload key', 'avoid chaining', 'dom size',
-  'third-party code', 'avoid enormous', 'reduce unused', 'eliminate render', 'unminified',
-  'minif', 'web vitals', 'performance score', 'page load', 'time to interactive'
-];
+// Claude already excludes PageSpeed issues server-side; this is a safety net for any edge cases
 issues = issues.filter(function(issue) {
-  var t = issue.title.toLowerCase();
-  return !psKeywords.some(function(kw) { return t.indexOf(kw) !== -1; });
+  return !(issue.name || '').startsWith('PageSpeed:');
 });
 
 renderTable();
