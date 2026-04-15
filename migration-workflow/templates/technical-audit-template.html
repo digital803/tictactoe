@@ -194,6 +194,10 @@
   .cwv-url-val.poor { color: #e81b9f; }
   .cwv-url-val.needs-work { color: #a31db4; }
   .cwv-url-val.good { color: #1b59b2; }
+  .cwv-src { font-size: 10px; font-weight: 700; padding: 1px 5px; letter-spacing: .03em; flex-shrink: 0; text-transform: uppercase; }
+  .cwv-src.field { background: #e8f5e9; color: #2e7d32; }
+  .cwv-src.lab { background: #f3e8f8; color: #a31db4; }
+  .cwv-src.mixed { background: #fff8e1; color: #f57f17; }
 
   @media (max-width: 768px) {
     .cwv-grid { grid-template-columns: 1fr; }
@@ -800,7 +804,7 @@ function renderCwv() {
       if (v == null) return;
       var b = m.bucket(v);
       counts[b]++;
-      groups[b].push({ url: p.url, value: v });
+      groups[b].push({ url: p.url, value: v, source: (deviceData.source || 'lab') });
     });
 
     // Sort each group worst-first
@@ -812,7 +816,12 @@ function renderCwv() {
     var status = overallStatus(counts);
     var pct = function(n) { return total ? Math.round((n / total) * 100) : 0; };
     var deviceLabel = currentCwvDevice.charAt(0).toUpperCase() + currentCwvDevice.slice(1);
-    var subText = total + ' URLs assessed · ' + deviceLabel;
+    var allUrls = groups.good.concat(groups['needs-work']).concat(groups.poor);
+    var fieldCount = allUrls.filter(function(g) { return g.source === 'field'; }).length;
+    var labCount = allUrls.filter(function(g) { return g.source === 'lab' || g.source === 'mixed'; }).length;
+    var srcNote = fieldCount > 0 && labCount > 0 ? fieldCount + ' field · ' + labCount + ' lab'
+                : fieldCount > 0 ? 'Field data' : 'Lab data';
+    var subText = total + ' URLs · ' + deviceLabel + ' · ' + srcNote;
 
     var html = '<div class="cwv-card">' +
       '<div class="cwv-card-head">' +
@@ -832,7 +841,7 @@ function renderCwv() {
       if (groups[b].length === 0) return;
       html += '<div class="cwv-url-group-head ' + b + '">' + statusLabel(b) + ' (' + m.ranges[b] + ') — ' + groups[b].length + ' URL' + (groups[b].length !== 1 ? 's' : '') + '</div>';
       groups[b].forEach(function(g) {
-        html += '<div class="cwv-url-row"><a href="' + g.url + '" target="_blank">' + g.url + '</a><span class="cwv-url-val ' + b + '">' + m.format(g.value) + '</span></div>';
+        html += '<div class="cwv-url-row"><a href="' + g.url + '" target="_blank">' + g.url + '</a><span class="cwv-src ' + g.source + '">' + g.source + '</span><span class="cwv-url-val ' + b + '">' + m.format(g.value) + '</span></div>';
       });
     });
 
