@@ -624,7 +624,7 @@ function showUrls(id) {
       var fixVal = escHtml(saved[url] || '');
       html += '<td><div contenteditable="true" class="rfix-cell" data-url="' + url + '" data-key="' + slugKey + '" ' +
         'style="min-height:22px;outline:none;border:1px solid #ddd;padding:3px 6px;border-radius:2px;font-size:12px;color:#333" ' +
-        'onfocus="this.style.borderColor='#357ce7';this.style.background='#f8fbff'" ' +
+        'onfocus="this.style.borderColor=\'#357ce7\';this.style.background=\'#f8fbff\'" ' +
         'onblur="saveRfix(this)">' + fixVal + '</div></td></tr>';
     });
     html += '</tbody></table>';
