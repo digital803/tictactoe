@@ -720,7 +720,7 @@ document.getElementById('urlModal').onclick = function(e) {
 
 // PageSpeed data — grouped by issue category
 // Claude populates this from SF PageSpeed export
-var pagespeedCategories = ___PAGESPEED_CATEGORIES_JSON___; /*[SAVE:pagespeed]*/
+var pagespeedCategories = (function(){ try { return ___PAGESPEED_CATEGORIES_JSON___; } catch(e) { return []; } })(); /*[SAVE:pagespeed]*/
 pagespeedCategories.sort(function(a,b){ var o={p1:1,p2:2,p3:3,p4:4}; return (o[a.severity]||9)-(o[b.severity]||9); });
 
 function scoreClass(v) { return v >= 90 ? 'good' : v >= 50 ? 'needs-work' : 'poor'; }
