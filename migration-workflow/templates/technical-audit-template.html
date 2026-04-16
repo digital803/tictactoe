@@ -109,6 +109,7 @@
   .modal-body th { padding: 10px 16px; font-size: 11px; position: sticky; top: 0; background: #f7f7f7; z-index: 1; }
   .modal-body tr:hover td { background: #fafafa; }
   .modal-body code { font-size: 12px; }
+  .rfix-cell:empty:before { content: 'Add fix…'; color: #bbb; font-style: italic; pointer-events: none; }
   .copy-success { color: #38a169; font-size: 12px; font-weight: 600; display: none; }
   .copy-success.show { display: inline; }
 
@@ -116,7 +117,7 @@
   .ps-category { border: 1px solid #e0e0e0; border-radius: 0; margin-bottom: 14px; overflow: hidden; }
   .ps-cat-header { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: #f7f7f7; border-bottom: 1px solid #e0e0e0; cursor: pointer; }
   .ps-cat-header:hover { background: #f0f0f0; }
-  .ps-cat-title { flex: 1; font-size: 14px; font-weight: 500; color: #333; }
+  .ps-cat-title { flex: 1; font-size: 13px; font-weight: 500; color: #333; }
   .ps-cat-count { font-size: 12px; color: #666; }
   .ps-cat-count strong { color: #00142a; }
   .ps-cat-body { display: none; }
@@ -126,11 +127,11 @@
   .ps-cat-fix ul { padding-left: 18px; margin: 0; }
   .ps-cat-fix li { font-size: 13px; color: #333; margin-bottom: 3px; }
   .ps-url-list { max-height: 300px; overflow-y: auto; }
-  .ps-url-list table { font-size: 12px; }
+  .ps-url-list table { font-size: 13px; }
   .ps-url-list th { font-size: 11px; padding: 8px 14px; background: #fafafa; position: sticky; top: 0; }
   .ps-url-list td { padding: 6px 14px; border-bottom: 1px solid #f5f5f5; }
   .ps-url-list tr:hover td { background: #fafafa; }
-  .ps-url-list code { font-size: 11px; }
+  .ps-url-list code { font-size: 12px; }
   .ps-metric-inline { font-weight: 600; font-size: 12px; }
   .ps-metric-inline.good { color: #38a169; }
   .ps-metric-inline.needs-work { color: #d69e2e; }
@@ -391,6 +392,7 @@
 <script>
 // Issue data - populated server-side from Claude analysis
 var issues = ___ISSUES_JSON___; /*[SAVE:issues]*/
+var issueDetailsByType = ___ISSUE_DETAILS_JSON___;
 
 var currentFilter = 'all';
 var categoryLabels = { tech: "Technical", cont: "Content", auth: "Authority" };
@@ -485,13 +487,17 @@ function renderTable() {
     detailRow.className = 'detail-row';
     detailRow.id = issue.id;
     detailRow.style.display = show ? '' : 'none';
-    var fixHtml = '<ul>' + issue.fix.map(function(f) { return '<li>' + f + '</li>'; }).join('') + '</ul>';
-    var urlSample = issue.urls.map(function(u) { return '<code>' + u + '</code>'; }).join(', ');
+    var fixHtml = '<ul>' + issue.fix.map(function(f) { return '<li>' + escHtml(f) + '</li>'; }).join('') + '</ul>';
+    var sampleUrls = issue.urls.slice(0, 5);
+    var urlSample = sampleUrls.map(function(u) {
+      return '<a href="' + u + '" target="_blank" class="url-link" style="display:block;margin-bottom:3px">' + u + '</a>';
+    }).join('');
+    if (issue.urls.length > 5) urlSample += '<span style="font-size:11px;color:#888;margin-top:4px;display:block">+ ' + (issue.urls.length - 5) + ' more — click the URL count to see all</span>';
     detailRow.innerHTML =
       '<td colspan="9" class="detail-cell">' +
-      '<h4>Description</h4><p>' + issue.description + '</p>' +
+      '<h4>Description</h4><p>' + escHtml(issue.description) + '</p>' +
       '<h4>How to Fix</h4>' + fixHtml +
-      '<h4>Affected URLs</h4><p>' + urlSample + '</p>' +
+      '<h4>Affected URLs (sample)</h4>' + urlSample +
       '</td>';
     tbody.appendChild(detailRow);
   });
@@ -522,6 +528,8 @@ function toggleAllRows() {
     else { r.classList.add('open'); if (arrow) arrow.classList.add('open'); }
   });
 }
+
+function escHtml(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 var severityOrder = ["p1", "p2", "p3", "p4"];
 
@@ -575,17 +583,58 @@ function filterBy(status) {
 
 var currentModalUrls = [];
 
+function getNormalizedKey(name) {
+  return (name || '').toLowerCase()
+    .replace(/:/g,'_').replace(/\s+/g,'_')
+    .replace(/[^a-z0-9_]/g,'').replace(/\d+/g,'x')
+    .replace(/_+/g,'_').replace(/^_+|_+$/g,'');
+}
+
+function saveRfix(el) {
+  el.style.borderColor = 'transparent'; el.style.background = 'transparent';
+  var k = el.dataset.key, url = el.dataset.url, val = el.textContent.trim();
+  var saved = {}; try { saved = JSON.parse(localStorage.getItem(k) || '{}'); } catch(e) {}
+  if (val) { saved[url] = val; } else { delete saved[url]; }
+  localStorage.setItem(k, JSON.stringify(saved));
+}
+
 function showUrls(id) {
   var issue = issues.find(function(i) { return i.id === id; });
   if (!issue) return;
   currentModalUrls = issue.urls;
   document.getElementById('modalTitle').textContent = issue.name + ' — ' + issue.url_count + ' affected URLs';
   document.getElementById('copySuccess').classList.remove('show');
-  var html = '<table><thead><tr><th style="width:40px">#</th><th>URL / Resource</th></tr></thead><tbody>';
-  issue.urls.forEach(function(u, i) {
-    html += '<tr><td>' + (i + 1) + '</td><td><code>' + u + '</code></td></tr>';
-  });
-  html += '</tbody></table>';
+
+  var key = getNormalizedKey(issue.name);
+  var details = (issueDetailsByType && issueDetailsByType[key]) ? issueDetailsByType[key] : [];
+  var slugKey = 'audit-___CLIENT_SLUG___-rfix-' + key;
+  var saved = {}; try { saved = JSON.parse(localStorage.getItem(slugKey) || '{}'); } catch(e) {}
+
+  var html;
+  if (details.length > 0) {
+    var allCols = Object.keys(details[0]).filter(function(c) { return c !== 'Address' && c !== 'URL'; });
+    html = '<table><thead><tr><th style="width:36px">#</th><th>URL</th>';
+    allCols.forEach(function(c) { html += '<th>' + escHtml(c) + '</th>'; });
+    html += '<th style="min-width:180px">Recommended Fix</th></tr></thead><tbody>';
+    details.forEach(function(row, i) {
+      var url = row.Address || row.URL || '';
+      html += '<tr><td>' + (i + 1) + '</td>';
+      html += '<td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><a href="' + url + '" target="_blank" class="url-link">' + url + '</a></td>';
+      allCols.forEach(function(c) { html += '<td>' + escHtml(row[c] || '') + '</td>'; });
+      var fixVal = escHtml(saved[url] || '');
+      html += '<td><div contenteditable="true" class="rfix-cell" data-url="' + url + '" data-key="' + slugKey + '" ' +
+        'style="min-height:22px;outline:none;border:1px solid #ddd;padding:3px 6px;border-radius:2px;font-size:12px;color:#333" ' +
+        'onfocus="this.style.borderColor='#357ce7';this.style.background='#f8fbff'" ' +
+        'onblur="saveRfix(this)">' + fixVal + '</div></td></tr>';
+    });
+    html += '</tbody></table>';
+  } else {
+    html = '<table><thead><tr><th style="width:40px">#</th><th>URL / Resource</th></tr></thead><tbody>';
+    issue.urls.forEach(function(u, i) {
+      html += '<tr><td>' + (i + 1) + '</td><td><a href="' + u + '" target="_blank" class="url-link">' + u + '</a></td></tr>';
+    });
+    html += '</tbody></table>';
+  }
   document.getElementById('modalBody').innerHTML = html;
   document.getElementById('urlModal').classList.add('open');
 }
@@ -632,9 +681,9 @@ function renderPageSpeed() {
       '<div class="ps-cat-actions">' +
         '<div class="ps-cat-count"><strong>' + cat.pageCount + '</strong> page' + (cat.pageCount !== 1 ? 's' : '') + '</div>' +
         '<button class="ps-copy-btn" id="pscopy-' + cid + '" onclick="event.stopPropagation(); copyPsUrls(\'' + cid + '\', ' + idx + ')">Copy URLs</button>' +
-        '<button class="del-btn" onclick="event.stopPropagation(); deletePsCategory(\'' + escapedName + '\')" title="Delete category">&#10005;</button>' +
       '</div>' +
       '<span class="ps-arrow" id="psa-' + cid + '">&#9654;</span>' +
+      '<button class="del-btn" onclick="event.stopPropagation(); deletePsCategory(\'' + escapedName + '\')" title="Delete category">&#10005;</button>' +
     '</div>';
 
     var bodyHtml = '<div class="ps-cat-body" id="' + cid + '">';
