@@ -625,12 +625,14 @@ function renderPageSpeed() {
 
     var sev = ['p1','p2','p3','p4'].indexOf(cat.severity) >= 0 ? cat.severity : 'p3';
 
+    var escapedName = cat.name.replace(/'/g, "\\'");
     var headerHtml = '<div class="ps-cat-header" onclick="togglePS(\'' + cid + '\')">' +
-      '<span class="pri ' + sev + '" style="flex-shrink:0;font-size:10px;padding:2px 6px">' + sev.toUpperCase() + '</span>' +
+      '<span class="pri ' + sev + '" style="flex-shrink:0;font-size:10px;padding:2px 6px;cursor:pointer" onclick="event.stopPropagation(); cyclePsCategory(\'' + escapedName + '\')" title="Click to change priority">' + sev.toUpperCase() + '</span>' +
       '<div class="ps-cat-title">' + cat.name + '</div>' +
       '<div class="ps-cat-actions">' +
         '<div class="ps-cat-count"><strong>' + cat.pageCount + '</strong> page' + (cat.pageCount !== 1 ? 's' : '') + '</div>' +
         '<button class="ps-copy-btn" id="pscopy-' + cid + '" onclick="event.stopPropagation(); copyPsUrls(\'' + cid + '\', ' + idx + ')">Copy URLs</button>' +
+        '<button class="del-btn" onclick="event.stopPropagation(); deletePsCategory(\'' + escapedName + '\')" title="Delete category">&#10005;</button>' +
       '</div>' +
       '<span class="ps-arrow" id="psa-' + cid + '">&#9654;</span>' +
     '</div>';
@@ -707,6 +709,21 @@ function copyPsUrls(cid, catIdx) {
     btn.classList.add('copied');
     setTimeout(function() { btn.textContent = 'Copy URLs'; btn.classList.remove('copied'); }, 2000);
   });
+}
+
+function cyclePsCategory(name) {
+  var cat = pagespeedCategories.find(function(c) { return c.name === name; });
+  if (!cat) return;
+  var idx = severityOrder.indexOf(cat.severity);
+  cat.severity = severityOrder[(idx + 1) % severityOrder.length];
+  pagespeedCategories.sort(function(a,b){ var o={p1:1,p2:2,p3:3,p4:4}; return (o[a.severity]||9)-(o[b.severity]||9); });
+  renderPageSpeed();
+}
+
+function deletePsCategory(name) {
+  if (!confirm('Delete "' + name + '" from this report?')) return;
+  pagespeedCategories = pagespeedCategories.filter(function(c) { return c.name !== name; });
+  renderPageSpeed();
 }
 
 function togglePS(id) {
