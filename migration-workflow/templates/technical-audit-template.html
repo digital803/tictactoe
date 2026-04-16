@@ -610,6 +610,7 @@ document.getElementById('urlModal').onclick = function(e) {
 // PageSpeed data — grouped by issue category
 // Claude populates this from SF PageSpeed export
 var pagespeedCategories = ___PAGESPEED_CATEGORIES_JSON___;
+pagespeedCategories.sort(function(a,b){ var o={p1:1,p2:2,p3:3,p4:4}; return (o[a.severity]||9)-(o[b.severity]||9); });
 
 function scoreClass(v) { return v >= 90 ? 'good' : v >= 50 ? 'needs-work' : 'poor'; }
 
@@ -622,10 +623,10 @@ function renderPageSpeed() {
     var div = document.createElement('div');
     div.className = 'ps-category';
 
-    var severityDot = cat.severity === 'error' ? '#e53e3e' : cat.severity === 'warning' ? '#d69e2e' : '#357ce7';
+    var sev = ['p1','p2','p3','p4'].indexOf(cat.severity) >= 0 ? cat.severity : 'p3';
 
     var headerHtml = '<div class="ps-cat-header" onclick="togglePS(\'' + cid + '\')">' +
-      '<div style="width:8px;height:8px;border-radius:50%;background:' + severityDot + ';flex-shrink:0"></div>' +
+      '<span class="pri ' + sev + '" style="flex-shrink:0;font-size:10px;padding:2px 6px">' + sev.toUpperCase() + '</span>' +
       '<div class="ps-cat-title">' + cat.name + '</div>' +
       '<div class="ps-cat-actions">' +
         '<div class="ps-cat-count"><strong>' + cat.pageCount + '</strong> page' + (cat.pageCount !== 1 ? 's' : '') + '</div>' +
