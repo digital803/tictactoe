@@ -396,6 +396,19 @@
 // Issue data - populated server-side from Claude analysis
 var issues = ___ISSUES_JSON___; /*[SAVE:issues]*/
 var issueDetailsByType = (function(){ try { return ___ISSUE_DETAILS_JSON___; } catch(e) { return {}; } })();
+// Apply any column-layout overrides saved by XLSX import
+(function(){
+  try {
+    var prefix = 'audit-___CLIENT_SLUG___-details-';
+    for (var i = 0; i < localStorage.length; i++) {
+      var k = localStorage.key(i);
+      if (k && k.indexOf(prefix) === 0) {
+        var issueKey = k.slice(prefix.length);
+        try { issueDetailsByType[issueKey] = JSON.parse(localStorage.getItem(k)); } catch(e) {}
+      }
+    }
+  } catch(e) {}
+})();
 
 var currentFilter = 'all';
 var categoryLabels = { tech: "Technical", cont: "Content", auth: "Authority" };
@@ -688,21 +701,43 @@ function importModalXlsx(input) {
       var wb = XLSX.read(e.target.result, { type: 'array' });
       var ws = wb.Sheets[wb.SheetNames[0]];
       var rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      if (!rows.length) { alert('No rows found in file.'); input.value = ''; return; }
+
       var issue = _currentModalIssue;
       var key = getNormalizedKey(issue.name);
-      var slugKey = 'audit-___CLIENT_SLUG___-rfix-' + key;
-      var saved = {}; try { saved = JSON.parse(localStorage.getItem(slugKey) || '{}'); } catch(e) {}
-      var updated = 0;
-      rows.forEach(function(row) {
-        var url = row['URL'] || row['Address'] || '';
-        var fix = row['Recommended Fix'] || row['recommended_fix'] || row['fix'] || '';
-        if (url) { saved[url] = fix; updated++; }
+
+      // Separate "Recommended Fix" from structural columns
+      var allImportCols = Object.keys(rows[0]);
+      var fixColName = allImportCols.find(function(c) {
+        return c.toLowerCase().replace(/\s/g,'') === 'recommendedfix' || c.toLowerCase() === 'fix';
+      }) || null;
+      var dataCols = allImportCols.filter(function(c) { return c !== fixColName; });
+
+      // Rebuild issueDetailsByType from the XLSX data columns (URL + whatever columns the user kept)
+      var newDetails = rows.map(function(row) {
+        var obj = {};
+        dataCols.forEach(function(c) { obj[c] = row[c] != null ? String(row[c]) : ''; });
+        return obj;
       });
-      localStorage.setItem(slugKey, JSON.stringify(saved));
-      // Re-render modal
+      issueDetailsByType[key] = newDetails;
+      localStorage.setItem('audit-___CLIENT_SLUG___-details-' + key, JSON.stringify(newDetails));
+
+      // Save "Recommended Fix" values per URL
+      if (fixColName) {
+        var slugKey = 'audit-___CLIENT_SLUG___-rfix-' + key;
+        var saved = {}; try { saved = JSON.parse(localStorage.getItem(slugKey) || '{}'); } catch(e) {}
+        rows.forEach(function(row) {
+          var url = row['URL'] || row['Address'] || '';
+          if (url) saved[url] = row[fixColName] != null ? String(row[fixColName]) : '';
+        });
+        localStorage.setItem(slugKey, JSON.stringify(saved));
+      }
+
+      // Re-render modal with updated columns
       showUrls(issue.id);
+      var updated = rows.length;
       var el = document.getElementById('copySuccess');
-      el.textContent = 'Imported ' + updated + ' rows ✓'; el.classList.add('show');
+      el.textContent = 'Imported ' + updated + ' rows, ' + dataCols.length + ' cols ✓'; el.classList.add('show');
       setTimeout(function() { el.classList.remove('show'); el.textContent = ''; }, 3000);
     } catch(err) { alert('Could not read XLSX: ' + err.message); }
     input.value = '';
@@ -1065,7 +1100,8 @@ function saveToFile() {
   var rfixData = {};
   for (var i = 0; i < localStorage.length; i++) {
     var k = localStorage.key(i);
-    if (k && k.indexOf('-rfix-') !== -1) rfixData[k] = localStorage.getItem(k);
+    // Bake both rfix (recommended fixes) and details (column layout overrides from XLSX import)
+    if (k && (k.indexOf('-rfix-') !== -1 || k.indexOf('-details-') !== -1)) rfixData[k] = localStorage.getItem(k);
   }
   var rfixScript = '<script id="_baked_rfix">!function(){var d=' + JSON.stringify(rfixData) + ';Object.keys(d).forEach(function(k){if(!localStorage.getItem(k))localStorage.setItem(k,d[k]);});}();<\/script>';
   // Remove previous baked rfix if re-saving
