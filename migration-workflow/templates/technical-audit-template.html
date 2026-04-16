@@ -617,13 +617,13 @@ function showUrls(id) {
   var html;
   if (details.length > 0) {
     var allCols = Object.keys(details[0]).filter(function(c) { return c !== 'Address' && c !== 'URL'; });
-    html = '<table><thead><tr><th style="width:36px">#</th><th>URL</th>';
-    allCols.forEach(function(c) { html += '<th>' + escHtml(c) + '</th>'; });
+    html = '<table style="table-layout:auto"><thead><tr><th style="width:36px">#</th><th style="min-width:300px">URL</th>';
+    allCols.forEach(function(c) { html += '<th style="white-space:nowrap">' + escHtml(c) + '</th>'; });
     html += '<th style="min-width:180px">Recommended Fix</th></tr></thead><tbody>';
     details.forEach(function(row, i) {
       var url = row.Address || row.URL || '';
       html += '<tr><td>' + (i + 1) + '</td>';
-      html += '<td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><a href="' + url + '" target="_blank" class="url-link">' + url + '</a></td>';
+      html += '<td style="min-width:300px;word-break:break-all"><a href="' + url + '" target="_blank" class="url-link">' + url + '</a></td>';
       allCols.forEach(function(c) { html += '<td>' + escHtml(row[c] || '') + '</td>'; });
       var fixVal = escHtml(saved[url] || '');
       html += '<td><div contenteditable="true" class="rfix-cell" data-url="' + url + '" data-key="' + slugKey + '" ' +
