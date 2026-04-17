@@ -787,7 +787,7 @@ function renderPageSpeed() {
 
     // Fix recommendation
     bodyHtml += '<div class="ps-cat-fix"><div class="ps-cat-fix-title">Recommended Fix</div><ul>';
-    cat.fix.forEach(function(f) { bodyHtml += '<li>' + f + '</li>'; });
+    cat.fix.forEach(function(f) { bodyHtml += '<li>' + escHtml(f) + '</li>'; });
     bodyHtml += '</ul></div>';
 
     // Affected pages table
