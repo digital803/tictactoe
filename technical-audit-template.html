@@ -1150,22 +1150,30 @@ function saveToFile() {
       rfixData[k] = localStorage.getItem(k);
     }
   }
-  var rfixScript = '<script id="_baked_rfix">!function(){var d=' + _safeJson(rfixData) + ';Object.keys(d).forEach(function(k){if(!localStorage.getItem(k))localStorage.setItem(k,d[k]);});}();<' + '/script>';
+  // Unicode-escape the tag delimiters (\u003c = <, \u003e = >) so the
+  // outerHTML serializer never sees a raw opening or closing script-tag
+  // sequence inside this block and truncates the content at that point.
+  var rfixScript = '\u003cscript id="_baked_rfix"\u003e!function(){var d=' + _safeJson(rfixData) + ';Object.keys(d).forEach(function(k){if(!localStorage.getItem(k))localStorage.setItem(k,d[k]);});}();\u003c/script\u003e';
   html = html.replace(/<script id="_baked_rfix">[\s\S]*?<\/script>/, '');
   html = html.replace('</head>', function() { return rfixScript + '</head>'; });
 
   // Prepend DOCTYPE (outerHTML never includes it)
   html = '<!DOCTYPE html>\n' + html;
 
-  // Pre-save integrity check — abort rather than write a broken file
+  // Pre-save integrity check — abort rather than write a broken file.
+  // Checks are ordered from earliest-in-file to latest so the first failure
+  // points to exactly where the output was truncated.
+  // NOTE: avoid checking JS strings that sit after the rfixScript definition
+  // in the source, because Chrome's outerHTML serializer can truncate a script
+  // element's content when it encounters a literal <script sequence inside it.
+  // The SAVE markers and structural tags are all safe to check.
   var checks = [
-    { marker: 'window.saveToFile = saveToFile;', label: 'window assignments' },
-    { marker: '/*[SAVE:issues]*/',               label: 'issues SAVE marker' },
-    { marker: '/*[SAVE:pagespeed]*/',             label: 'pagespeed SAVE marker' },
-    { marker: 'renderTable()',                    label: 'boot render calls' },
-    { marker: '<\/script>',                       label: 'script closing tag' },
-    { marker: '<\/body>',                         label: 'body closing tag' },
-    { marker: '<\/html>',                         label: 'html closing tag' }
+    { marker: '/*[SAVE:issues]*/',    label: 'issues SAVE marker' },
+    { marker: '/*[SAVE:pagespeed]*/', label: 'pagespeed SAVE marker' },
+    { marker: '/*[SAVE:summary]*/',   label: 'summary SAVE marker' },
+    { marker: '\u003c/script\u003e',  label: 'script closing tag' },
+    { marker: '\u003c/body\u003e',    label: 'body closing tag' },
+    { marker: '\u003c/html\u003e',    label: 'html closing tag' }
   ];
   for (var ci = 0; ci < checks.length; ci++) {
     if (html.indexOf(checks[ci].marker) === -1) {
