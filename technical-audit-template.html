@@ -498,7 +498,7 @@ function renderTable() {
       '<td><span class="clickable" style="font-weight:500;color:#333">' + issue.name + '</span></td>' +
       '<td><span class="b ' + categoryClasses[issue.category] + '">' + categoryLabels[issue.category] + '</span></td>' +
       '<td><span class="b ' + effortClasses[issue.effort] + '" onclick="event.stopPropagation(); cycleEffort(\'' + issue.id + '\')">' + effortLabels[issue.effort] + '</span></td>' +
-      '<td><a class="url-link" href="#" onclick="event.stopPropagation(); showUrls(\'' + issue.id + '\')">' + issue.url_count + ' URLs</a></td>' +
+      '<td><a class="url-link" href="#" onclick="event.preventDefault(); event.stopPropagation(); showUrls(\'' + issue.id + '\'); return false;">' + issue.url_count + ' URLs</a></td>' +
       '<td><span class="st ' + statusClasses[issue.status] + '" onclick="event.stopPropagation(); cycleStatus(\'' + issue.id + '\')">' + statusLabels[issue.status] + '</span></td>' +
       '<td><span class="arrow" id="a-' + issue.id + '">&#9654;</span></td>' +
       '<td><button class="del-btn" onclick="event.stopPropagation(); deleteIssue(\'' + issue.id + '\')" title="Delete task">&#10005;</button></td>';
@@ -1151,7 +1151,13 @@ function saveToFile() {
   var rfixData = {};
   for (var i = 0; i < localStorage.length; i++) {
     var k = localStorage.key(i);
-    if (k && (k.indexOf('-rfix-') !== -1 || k.indexOf('-details-') !== -1)) {
+    if (k && (
+      k.indexOf(STORAGE_PREFIX + '-rfix-') === 0 ||
+      k.indexOf(STORAGE_PREFIX + '-details-') === 0 ||
+      k === STORAGE_PREFIX ||
+      k === STORAGE_PREFIX + '-summary' ||
+      k === STORAGE_PREFIX + '-ps-summary'
+    )) {
       rfixData[k] = localStorage.getItem(k);
     }
   }
