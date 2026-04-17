@@ -1064,6 +1064,19 @@ function submitAddTask() {
 
 // Save File — writes current state directly back to the HTML file (Chrome/Edge only)
 var _saveFileHandle = null;
+
+// Safely encode data as JSON for embedding inside a <script> block.
+// 1. Escapes < and > with Unicode so closing-script-tag sequences can never
+//    terminate the script block in the saved HTML.
+// 2. Callers use a function callback in .replace() so that $ characters
+//    in the JSON (prices, URL params, etc.) are never misread as
+//    replacement-pattern references ($&, $1, $`, $' etc.).
+function _safeJson(data) {
+  return JSON.stringify(data)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e');
+}
+
 function saveToFile() {
   var summaryEl = document.getElementById('summaryText');
   var currentSummary = summaryEl ? summaryEl.innerHTML : '';
@@ -1072,26 +1085,32 @@ function saveToFile() {
   // Use pre-render snapshot — avoids rendered issue/pagespeed HTML polluting
   // the script block with characters that break re-parsing (e.g. script-closing tags)
   var html = _pageSource || document.documentElement.outerHTML;
-  // Bake in current issues state
+  // Bake in current issues state.
+  // NOTE: function callback in .replace() prevents $ in the JSON from being
+  // treated as a replacement-pattern reference (e.g. $& = full match, $1 = group 1).
+  var _issuesToBake = _safeJson(issues);
   html = html.replace(
     /var issues\s*=\s*([\s\S]*?);\s*\/\*\[SAVE:issues\]\*\//,
-    'var issues = ' + JSON.stringify(issues) + '; /*[SAVE:issues]*/'
+    function() { return 'var issues = ' + _issuesToBake + '; /*[SAVE:issues]*/'; }
   );
   // Bake in current pagespeed categories state
+  var _psCatsToBake = _safeJson(pagespeedCategories);
   html = html.replace(
     /var pagespeedCategories\s*=\s*([\s\S]*?);\s*\/\*\[SAVE:pagespeed\]\*\//,
-    'var pagespeedCategories = ' + JSON.stringify(pagespeedCategories) + '; /*[SAVE:pagespeed]*/'
+    function() { return 'var pagespeedCategories = ' + _psCatsToBake + '; /*[SAVE:pagespeed]*/'; }
   );
-  // Bake in current summary text — JSON.stringify handles all escaping safely
+  // Bake in current summary text
+  var _summaryToBake = _safeJson(currentSummary);
   html = html.replace(
     /var defaultSummary\s*=\s*[\s\S]*?;\s*\/\*\[SAVE:summary\]\*\//,
-    'var defaultSummary = ' + JSON.stringify(currentSummary) + '; /*[SAVE:summary]*/'
+    function() { return 'var defaultSummary = ' + _summaryToBake + '; /*[SAVE:summary]*/'; }
   );
   // Bake in PS summary override
   if (currentPsSummary) {
+    var _psSummaryToBake = _safeJson(currentPsSummary);
     html = html.replace(
       /var psSummaryOverride\s*=\s*[\s\S]*?;\s*\/\*\[SAVE:pssummary\]\*\//,
-      'var psSummaryOverride = ' + JSON.stringify(currentPsSummary) + '; /*[SAVE:pssummary]*/'
+      function() { return 'var psSummaryOverride = ' + _psSummaryToBake + '; /*[SAVE:pssummary]*/'; }
     );
   }
   // Bake in all rfix (recommended fix) data from localStorage so it survives on Netlify
@@ -1101,10 +1120,10 @@ function saveToFile() {
     // Bake both rfix (recommended fixes) and details (column layout overrides from XLSX import)
     if (k && (k.indexOf('-rfix-') !== -1 || k.indexOf('-details-') !== -1)) rfixData[k] = localStorage.getItem(k);
   }
-  var rfixScript = '<script id="_baked_rfix">!function(){var d=' + JSON.stringify(rfixData) + ';Object.keys(d).forEach(function(k){if(!localStorage.getItem(k))localStorage.setItem(k,d[k]);});}();<' + '/script>';
+  var rfixScript = '<script id="_baked_rfix">!function(){var d=' + _safeJson(rfixData) + ';Object.keys(d).forEach(function(k){if(!localStorage.getItem(k))localStorage.setItem(k,d[k]);});}();<' + '/script>';
   // Remove previous baked rfix if re-saving
   html = html.replace(/<script id="_baked_rfix">[\s\S]*?<\/script>/, '');
-  html = html.replace('</head>', rfixScript + '</head>');
+  html = html.replace('</head>', function() { return rfixScript + '</head>'; });
   html = '<!DOCTYPE html>\n' + html;
   // Firefox / Safari fallback — no showSaveFilePicker, use blob download
   if (!window.showSaveFilePicker) {
