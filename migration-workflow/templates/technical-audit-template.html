@@ -896,8 +896,8 @@ function saveSummary() {
 // Core Web Vitals data — populated from SF PageSpeed export (mobile + desktop strategies)
 // Each URL has separate mobile and desktop measurements
 // Per-device data populated server-side from Screaming Frog PageSpeed export
-var cwvDataMobile = ___CWV_MOBILE_JSON___;
-var cwvDataDesktop = ___CWV_DESKTOP_JSON___;
+var cwvDataMobile = (function(){ try { return ___CWV_MOBILE_JSON___; } catch(e) { return []; } })();
+var cwvDataDesktop = (function(){ try { return ___CWV_DESKTOP_JSON___; } catch(e) { return []; } })();
 
 // Merge per-URL into the {url, mobile, desktop} structure renderCwv() expects
 function mergeCwvData(mobile, desktop) {
@@ -1065,10 +1065,6 @@ function submitAddTask() {
 // Save File — writes current state directly back to the HTML file (Chrome/Edge only)
 var _saveFileHandle = null;
 function saveToFile() {
-  if (!window.showSaveFilePicker) {
-    alert('Direct file saving requires Chrome or Edge. Use the Export button instead, or open the file in Chrome.');
-    return;
-  }
   var summaryEl = document.getElementById('summaryText');
   var currentSummary = summaryEl ? summaryEl.innerHTML : '';
   var psSummaryEl = document.getElementById('ps-summary-text');
@@ -1086,16 +1082,16 @@ function saveToFile() {
     /var pagespeedCategories\s*=\s*([\s\S]*?);\s*\/\*\[SAVE:pagespeed\]\*\//,
     'var pagespeedCategories = ' + JSON.stringify(pagespeedCategories) + '; /*[SAVE:pagespeed]*/'
   );
-  // Bake in current summary text
+  // Bake in current summary text — JSON.stringify handles all escaping safely
   html = html.replace(
-    /var defaultSummary\s*=\s*`[\s\S]*?`;\s*\/\*\[SAVE:summary\]\*\//,
-    'var defaultSummary = `' + currentSummary.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$\{/g, '\\${') + '`; /*[SAVE:summary]*/'
+    /var defaultSummary\s*=\s*[\s\S]*?;\s*\/\*\[SAVE:summary\]\*\//,
+    'var defaultSummary = ' + JSON.stringify(currentSummary) + '; /*[SAVE:summary]*/'
   );
   // Bake in PS summary override
   if (currentPsSummary) {
     html = html.replace(
       /var psSummaryOverride\s*=\s*[\s\S]*?;\s*\/\*\[SAVE:pssummary\]\*\//,
-      'var psSummaryOverride = `' + currentPsSummary.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$\{/g, '\\${') + '`; /*[SAVE:pssummary]*/'
+      'var psSummaryOverride = ' + JSON.stringify(currentPsSummary) + '; /*[SAVE:pssummary]*/'
     );
   }
   // Bake in all rfix (recommended fix) data from localStorage so it survives on Netlify
@@ -1105,11 +1101,19 @@ function saveToFile() {
     // Bake both rfix (recommended fixes) and details (column layout overrides from XLSX import)
     if (k && (k.indexOf('-rfix-') !== -1 || k.indexOf('-details-') !== -1)) rfixData[k] = localStorage.getItem(k);
   }
-  var rfixScript = '<script id="_baked_rfix">!function(){var d=' + JSON.stringify(rfixData) + ';Object.keys(d).forEach(function(k){if(!localStorage.getItem(k))localStorage.setItem(k,d[k]);});}();<\/script>';
+  var rfixScript = '<script id="_baked_rfix">!function(){var d=' + JSON.stringify(rfixData) + ';Object.keys(d).forEach(function(k){if(!localStorage.getItem(k))localStorage.setItem(k,d[k]);});}();<' + '/script>';
   // Remove previous baked rfix if re-saving
   html = html.replace(/<script id="_baked_rfix">[\s\S]*?<\/script>/, '');
   html = html.replace('</head>', rfixScript + '</head>');
   html = '<!DOCTYPE html>\n' + html;
+  // Firefox / Safari fallback — no showSaveFilePicker, use blob download
+  if (!window.showSaveFilePicker) {
+    var _link = document.createElement('a');
+    _link.href = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+    _link.download = 'index.html';
+    _link.click();
+    return;
+  }
   var doWrite = function(handle) {
     handle.createWritable().then(function(writable) {
       writable.write(html).then(function() {
