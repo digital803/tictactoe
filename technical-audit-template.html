@@ -393,13 +393,18 @@
 </div>
 
 <script>
+// Single source of truth for all localStorage keys for this audit.
+// Every read/write goes through STORAGE_PREFIX so a slug change in Make.com
+// never creates a key mismatch between old and new saved data.
+var STORAGE_PREFIX = 'audit-___CLIENT_SLUG___';
+
 // Issue data - populated server-side from Claude analysis
 var issues = ___ISSUES_JSON___; /*[SAVE:issues]*/
 var issueDetailsByType = (function(){ try { return ___ISSUE_DETAILS_JSON___; } catch(e) { return {}; } })();
 // Apply any column-layout overrides saved by XLSX import
 (function(){
   try {
-    var prefix = 'audit-___CLIENT_SLUG___-details-';
+    var prefix = STORAGE_PREFIX + '-details-';
     for (var i = 0; i < localStorage.length; i++) {
       var k = localStorage.key(i);
       if (k && k.indexOf(prefix) === 0) {
@@ -422,7 +427,7 @@ var statusClasses = { ns: "ns", ip: "ip", dn: "dn" };
 var severityLabels = { p1: "Immediate", p2: "Important", p3: "Routine", p4: "Minor" };
 
 // Load saved state
-var saved = localStorage.getItem('audit-___CLIENT_SLUG___');
+var saved = localStorage.getItem(STORAGE_PREFIX);
 if (saved) {
   try {
     var savedData = JSON.parse(saved);
@@ -448,7 +453,7 @@ if (saved) {
 
 function saveState() {
   var data = issues.map(function(i) { return { id: i.id, status: i.status, effort: i.effort, severity: i.severity }; });
-  localStorage.setItem('audit-___CLIENT_SLUG___', JSON.stringify(data));
+  localStorage.setItem(STORAGE_PREFIX, JSON.stringify(data));
   var ind = document.getElementById('saveIndicator');
   ind.classList.add('show');
   setTimeout(function() { ind.classList.remove('show'); }, 1500);
@@ -624,7 +629,7 @@ function showUrls(id) {
 
   var key = getNormalizedKey(issue.name);
   var details = (issueDetailsByType && issueDetailsByType[key]) ? issueDetailsByType[key] : [];
-  var slugKey = 'audit-___CLIENT_SLUG___-rfix-' + key;
+  var slugKey = STORAGE_PREFIX + '-rfix-' + key;
   var saved = {}; try { saved = JSON.parse(localStorage.getItem(slugKey) || '{}'); } catch(e) {}
 
   var html;
@@ -664,7 +669,7 @@ function _getModalRows() {
   var issue = _currentModalIssue;
   var key = getNormalizedKey(issue.name);
   var details = (issueDetailsByType && issueDetailsByType[key]) ? issueDetailsByType[key] : [];
-  var slugKey = 'audit-___CLIENT_SLUG___-rfix-' + key;
+  var slugKey = STORAGE_PREFIX + '-rfix-' + key;
   var saved = {}; try { saved = JSON.parse(localStorage.getItem(slugKey) || '{}'); } catch(e) {}
   if (details.length > 0) {
     return details.map(function(row) {
@@ -720,11 +725,11 @@ function importModalXlsx(input) {
         return obj;
       });
       issueDetailsByType[key] = newDetails;
-      localStorage.setItem('audit-___CLIENT_SLUG___-details-' + key, JSON.stringify(newDetails));
+      localStorage.setItem(STORAGE_PREFIX + '-details-' + key, JSON.stringify(newDetails));
 
       // Save "Recommended Fix" values per URL
       if (fixColName) {
-        var slugKey = 'audit-___CLIENT_SLUG___-rfix-' + key;
+        var slugKey = STORAGE_PREFIX + '-rfix-' + key;
         var saved = {}; try { saved = JSON.parse(localStorage.getItem(slugKey) || '{}'); } catch(e) {}
         rows.forEach(function(row) {
           var url = row['URL'] || row['Address'] || '';
@@ -826,7 +831,7 @@ function renderPsSummary() {
      avg >= 50 ? 'moderate performance — there are meaningful opportunities to improve load speed and user experience.' :
      'significant performance issues that are likely affecting user experience and may be impacting organic rankings.') +
     ' The issue categories below break down the root causes affecting the most pages.';
-  var savedText = psSummaryOverride || localStorage.getItem('audit-___CLIENT_SLUG___-ps-summary');
+  var savedText = psSummaryOverride || localStorage.getItem(STORAGE_PREFIX + '-ps-summary');
   container.innerHTML =
     '<div class="ps-summary-card">' +
       '<div class="ps-summary-score-num ' + cls + '">' + avg + '<span style="font-size:18px;font-weight:400">/100</span></div>' +
@@ -839,7 +844,7 @@ function renderPsSummary() {
 }
 function savePsSummary() {
   var el = document.getElementById('ps-summary-text');
-  if (el) localStorage.setItem('audit-___CLIENT_SLUG___-ps-summary', el.innerHTML);
+  if (el) localStorage.setItem(STORAGE_PREFIX + '-ps-summary', el.innerHTML);
   var ind = document.getElementById('saveIndicator');
   ind.classList.add('show');
   setTimeout(function() { ind.classList.remove('show'); }, 1500);
@@ -883,11 +888,11 @@ function togglePS(id) {
 var defaultSummary = `___SUMMARY_HTML___`; /*[SAVE:summary]*/
 var psSummaryOverride = null; /*[SAVE:pssummary]*/
 
-var savedSummary = localStorage.getItem('audit-___CLIENT_SLUG___-summary');
+var savedSummary = localStorage.getItem(STORAGE_PREFIX + '-summary');
 document.getElementById('summaryText').innerHTML = savedSummary || defaultSummary;
 
 function saveSummary() {
-  localStorage.setItem('audit-___CLIENT_SLUG___-summary', document.getElementById('summaryText').innerHTML);
+  localStorage.setItem(STORAGE_PREFIX + '-summary', document.getElementById('summaryText').innerHTML);
   var ind = document.getElementById('saveIndicator');
   ind.classList.add('show');
   setTimeout(function() { ind.classList.remove('show'); }, 1500);
@@ -1153,7 +1158,9 @@ function saveToFile() {
   // Unicode-escape the tag delimiters (\u003c = <, \u003e = >) so the
   // outerHTML serializer never sees a raw opening or closing script-tag
   // sequence inside this block and truncates the content at that point.
-  var rfixScript = '\u003cscript id="_baked_rfix"\u003e!function(){var d=' + _safeJson(rfixData) + ';Object.keys(d).forEach(function(k){if(!localStorage.getItem(k))localStorage.setItem(k,d[k]);});}();\u003c/script\u003e';
+  // Always overwrite — "set if missing" would silently ignore stale legacy keys
+  // left over from a previous slug format (e.g. incrediblehumansafrica vs incredible-humans-africa).
+  var rfixScript = '\u003cscript id="_baked_rfix"\u003e!function(){var d=' + _safeJson(rfixData) + ';Object.keys(d).forEach(function(k){localStorage.setItem(k,d[k]);});}();\u003c/script\u003e';
   html = html.replace(/<script id="_baked_rfix">[\s\S]*?<\/script>/, '');
   html = html.replace('</head>', function() { return rfixScript + '</head>'; });
 
