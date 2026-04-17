@@ -110,8 +110,7 @@
   .modal-body th { padding: 10px 16px; font-size: 11px; position: sticky; top: 0; background: #f7f7f7; z-index: 1; }
   .modal-body tr:hover td { background: #fafafa; }
   .modal-body code { font-size: 12px; }
-  .rfix-cell:empty:before { content: 'Add fix…'; color: #bbb; font-style: italic; pointer-events: none; }
-  .copy-success { color: #38a169; font-size: 12px; font-weight: 600; display: none; }
+.copy-success { color: #38a169; font-size: 12px; font-weight: 600; display: none; }
   .copy-success.show { display: inline; }
 
   /* PageSpeed section */
@@ -375,10 +374,7 @@
     <div class="modal-header">
       <h3 id="modalTitle">Affected URLs</h3>
       <div class="modal-actions">
-        <button class="modal-btn outline" onclick="exportModalXlsx()" title="Export table to Excel">&#8681; Export XLSX</button>
-        <button class="modal-btn outline" onclick="document.getElementById('importXlsxInput').click()" title="Import recommendations from Excel">&#8679; Import XLSX</button>
-        <input type="file" id="importXlsxInput" accept=".xlsx,.xls" style="display:none" onchange="importModalXlsx(this)">
-        <span class="copy-success" id="copySuccess" style="color:#38a169"></span>
+        <a id="modalSheetLink" href="#" target="_blank" class="modal-btn outline" style="display:none;text-decoration:none">&#128202; Open in Google Sheets</a>
       </div>
       <button class="modal-close" onclick="closeModal()">&times;</button>
     </div>
@@ -401,19 +397,6 @@ var STORAGE_PREFIX = 'audit-___CLIENT_SLUG___';
 // Issue data - populated server-side from Claude analysis
 var issues = ___ISSUES_JSON___; /*[SAVE:issues]*/
 var issueDetailsByType = (function(){ try { return ___ISSUE_DETAILS_JSON___; } catch(e) { return {}; } })();
-// Apply any column-layout overrides saved by XLSX import
-(function(){
-  try {
-    var prefix = STORAGE_PREFIX + '-details-';
-    for (var i = 0; i < localStorage.length; i++) {
-      var k = localStorage.key(i);
-      if (k && k.indexOf(prefix) === 0) {
-        var issueKey = k.slice(prefix.length);
-        try { issueDetailsByType[issueKey] = JSON.parse(localStorage.getItem(k)); } catch(e) {}
-      }
-    }
-  } catch(e) {}
-})();
 
 var currentFilter = 'all';
 var categoryLabels = { tech: "Technical", cont: "Content", auth: "Authority" };
@@ -498,14 +481,17 @@ function renderTable() {
       '<td><span class="clickable" style="font-weight:500;color:#333">' + issue.name + '</span></td>' +
       '<td><span class="b ' + categoryClasses[issue.category] + '">' + categoryLabels[issue.category] + '</span></td>' +
       '<td><span class="b ' + effortClasses[issue.effort] + '" onclick="event.stopPropagation(); cycleEffort(\'' + issue.id + '\')">' + effortLabels[issue.effort] + '</span></td>' +
-      '<td><a class="url-link" href="#" onclick="event.preventDefault(); event.stopPropagation(); openUrlsModal(\'' + issue.id + '\'); return false;">' + issue.url_count + ' URLs</a></td>' +
+      '<td>' +
+        '<a class="url-link" href="#" onclick="event.preventDefault(); event.stopPropagation(); openUrlsModal(\'' + issue.id + '\'); return false;">' + issue.url_count + ' URLs</a>' +
+        (issue.sheet_url ? ' <a href="' + issue.sheet_url + '" target="_blank" title="Open in Google Sheets" style="color:#0f9d58;text-decoration:none;font-size:13px" onclick="event.stopPropagation()">&#128202;</a>' : '') +
+      '</td>' +
       '<td><span class="st ' + statusClasses[issue.status] + '" onclick="event.stopPropagation(); cycleStatus(\'' + issue.id + '\')">' + statusLabels[issue.status] + '</span></td>' +
-      '<td><span class="arrow" id="a-' + issue.id + '">&#9654;</span></td>' +
+      '<td><span class="arrow open" id="a-' + issue.id + '">&#9654;</span></td>' +
       '<td><button class="del-btn" onclick="event.stopPropagation(); deleteIssue(\'' + issue.id + '\')" title="Delete task">&#10005;</button></td>';
     tbody.appendChild(mainRow);
 
     var detailRow = document.createElement('tr');
-    detailRow.className = 'detail-row';
+    detailRow.className = 'detail-row open';
     detailRow.id = issue.id;
     detailRow.style.display = show ? '' : 'none';
     var fixHtml = '<ul>' + issue.fix.map(function(f) { return '<li>' + escHtml(f) + '</li>'; }).join('') + '</ul>';
@@ -611,13 +597,6 @@ function getNormalizedKey(name) {
     .replace(/_+/g,'_').replace(/^_+|_+$/g,'');
 }
 
-function saveRfix(el) {
-  el.style.borderColor = 'transparent'; el.style.background = 'transparent';
-  var k = el.dataset.key, url = el.dataset.url, val = el.textContent.trim();
-  var saved = {}; try { saved = JSON.parse(localStorage.getItem(k) || '{}'); } catch(e) {}
-  if (val) { saved[url] = val; } else { delete saved[url]; }
-  localStorage.setItem(k, JSON.stringify(saved));
-}
 
 function openUrlsModal(id) {
   var issue = issues.find(function(i) { return i.id === id; });
@@ -625,35 +604,37 @@ function openUrlsModal(id) {
   _currentModalIssue = issue;
   currentModalUrls = issue.urls;
   document.getElementById('modalTitle').textContent = issue.name + ' — ' + issue.url_count + ' affected URLs';
-  document.getElementById('copySuccess').classList.remove('show');
+
+  // Show or hide the Google Sheets link in the modal header
+  var sheetLink = document.getElementById('modalSheetLink');
+  if (issue.sheet_url) {
+    sheetLink.href = issue.sheet_url;
+    sheetLink.style.display = '';
+  } else {
+    sheetLink.style.display = 'none';
+  }
 
   var key = getNormalizedKey(issue.name);
   var details = (issueDetailsByType && issueDetailsByType[key]) ? issueDetailsByType[key] : [];
-  var slugKey = STORAGE_PREFIX + '-rfix-' + key;
-  var saved = {}; try { saved = JSON.parse(localStorage.getItem(slugKey) || '{}'); } catch(e) {}
 
   var html;
   if (details.length > 0) {
     var allCols = Object.keys(details[0]).filter(function(c) { return c !== 'Address' && c !== 'URL'; });
     html = '<table style="table-layout:auto"><thead><tr><th style="width:36px">#</th><th style="min-width:300px">URL</th>';
     allCols.forEach(function(c) { html += '<th style="white-space:nowrap">' + escHtml(c) + '</th>'; });
-    html += '<th style="min-width:180px">Recommended Fix</th></tr></thead><tbody>';
+    html += '</tr></thead><tbody>';
     details.forEach(function(row, i) {
       var url = row.Address || row.URL || '';
       html += '<tr><td>' + (i + 1) + '</td>';
-      html += '<td style="min-width:300px;word-break:break-all"><a href="' + url + '" target="_blank" class="url-link">' + url + '</a></td>';
+      html += '<td style="min-width:300px;word-break:break-all"><a href="' + escHtml(url) + '" target="_blank" class="url-link">' + escHtml(url) + '</a></td>';
       allCols.forEach(function(c) { html += '<td>' + escHtml(row[c] || '') + '</td>'; });
-      var fixVal = escHtml(saved[url] || '');
-      html += '<td><div contenteditable="true" class="rfix-cell" data-url="' + url + '" data-key="' + slugKey + '" ' +
-        'style="min-height:22px;outline:none;border:1px solid #ddd;padding:3px 6px;border-radius:2px;font-size:12px;color:#333" ' +
-        'onfocus="this.style.borderColor=\'#357ce7\';this.style.background=\'#f8fbff\'" ' +
-        'onblur="saveRfix(this)">' + fixVal + '</div></td></tr>';
+      html += '</tr>';
     });
     html += '</tbody></table>';
   } else {
     html = '<table><thead><tr><th style="width:40px">#</th><th>URL / Resource</th></tr></thead><tbody>';
     issue.urls.forEach(function(u, i) {
-      html += '<tr><td>' + (i + 1) + '</td><td><a href="' + u + '" target="_blank" class="url-link">' + u + '</a></td></tr>';
+      html += '<tr><td>' + (i + 1) + '</td><td><a href="' + escHtml(u) + '" target="_blank" class="url-link">' + escHtml(u) + '</a></td></tr>';
     });
     html += '</tbody></table>';
   }
@@ -661,94 +642,7 @@ function openUrlsModal(id) {
   document.getElementById('urlModal').classList.add('open');
 }
 
-var _currentModalIssue = null; // track current issue for import/export
-
-function _getModalRows() {
-  // Returns [{col: val, ...}] for the current modal's data including saved rfix values
-  if (!_currentModalIssue) return [];
-  var issue = _currentModalIssue;
-  var key = getNormalizedKey(issue.name);
-  var details = (issueDetailsByType && issueDetailsByType[key]) ? issueDetailsByType[key] : [];
-  var slugKey = STORAGE_PREFIX + '-rfix-' + key;
-  var saved = {}; try { saved = JSON.parse(localStorage.getItem(slugKey) || '{}'); } catch(e) {}
-  if (details.length > 0) {
-    return details.map(function(row) {
-      var url = row.Address || row.URL || '';
-      var out = { URL: url };
-      Object.keys(row).forEach(function(c) { if (c !== 'Address' && c !== 'URL') out[c] = row[c] || ''; });
-      out['Recommended Fix'] = saved[url] || '';
-      return out;
-    });
-  } else {
-    return issue.urls.map(function(u) { return { URL: u, 'Recommended Fix': saved[u] || '' }; });
-  }
-}
-
-function exportModalXlsx() {
-  if (!_currentModalIssue) return;
-  var rows = _getModalRows();
-  if (!rows.length) { alert('No data to export.'); return; }
-  var ws = XLSX.utils.json_to_sheet(rows);
-  var wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'URLs');
-  var slug = getNormalizedKey(_currentModalIssue.name);
-  XLSX.writeFile(wb, 'audit-' + slug + '.xlsx');
-  var el = document.getElementById('copySuccess');
-  el.textContent = 'Exported ✓'; el.classList.add('show');
-  setTimeout(function() { el.classList.remove('show'); el.textContent = ''; }, 2000);
-}
-
-function importModalXlsx(input) {
-  if (!input.files || !input.files[0] || !_currentModalIssue) return;
-  var reader = new FileReader();
-  reader.onload = function(e) {
-    try {
-      var wb = XLSX.read(e.target.result, { type: 'array' });
-      var ws = wb.Sheets[wb.SheetNames[0]];
-      var rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
-      if (!rows.length) { alert('No rows found in file.'); input.value = ''; return; }
-
-      var issue = _currentModalIssue;
-      var key = getNormalizedKey(issue.name);
-
-      // Separate "Recommended Fix" from structural columns
-      var allImportCols = Object.keys(rows[0]);
-      var fixColName = allImportCols.find(function(c) {
-        return c.toLowerCase().replace(/\s/g,'') === 'recommendedfix' || c.toLowerCase() === 'fix';
-      }) || null;
-      var dataCols = allImportCols.filter(function(c) { return c !== fixColName; });
-
-      // Rebuild issueDetailsByType from the XLSX data columns (URL + whatever columns the user kept)
-      var newDetails = rows.map(function(row) {
-        var obj = {};
-        dataCols.forEach(function(c) { obj[c] = row[c] != null ? String(row[c]) : ''; });
-        return obj;
-      });
-      issueDetailsByType[key] = newDetails;
-      localStorage.setItem(STORAGE_PREFIX + '-details-' + key, JSON.stringify(newDetails));
-
-      // Save "Recommended Fix" values per URL
-      if (fixColName) {
-        var slugKey = STORAGE_PREFIX + '-rfix-' + key;
-        var saved = {}; try { saved = JSON.parse(localStorage.getItem(slugKey) || '{}'); } catch(e) {}
-        rows.forEach(function(row) {
-          var url = row['URL'] || row['Address'] || '';
-          if (url) saved[url] = row[fixColName] != null ? String(row[fixColName]) : '';
-        });
-        localStorage.setItem(slugKey, JSON.stringify(saved));
-      }
-
-      // Re-render modal with updated columns
-      openUrlsModal(issue.id);
-      var updated = rows.length;
-      var el = document.getElementById('copySuccess');
-      el.textContent = 'Imported ' + updated + ' rows, ' + dataCols.length + ' cols ✓'; el.classList.add('show');
-      setTimeout(function() { el.classList.remove('show'); el.textContent = ''; }, 3000);
-    } catch(err) { alert('Could not read XLSX: ' + err.message); }
-    input.value = '';
-  };
-  reader.readAsArrayBuffer(input.files[0]);
-}
+var _currentModalIssue = null;
 
 function closeModal() {
   document.getElementById('urlModal').classList.remove('open');
@@ -1147,38 +1041,12 @@ function saveToFile() {
     );
   }
 
-  // Bake all rfix / column-layout data from localStorage so it survives Netlify
-  var rfixData = {};
-  for (var i = 0; i < localStorage.length; i++) {
-    var k = localStorage.key(i);
-    if (k && (
-      k.indexOf(STORAGE_PREFIX + '-rfix-') === 0 ||
-      k.indexOf(STORAGE_PREFIX + '-details-') === 0 ||
-      k === STORAGE_PREFIX ||
-      k === STORAGE_PREFIX + '-summary' ||
-      k === STORAGE_PREFIX + '-ps-summary'
-    )) {
-      rfixData[k] = localStorage.getItem(k);
-    }
-  }
-  // Unicode-escape the tag delimiters (\u003c = <, \u003e = >) so the
-  // outerHTML serializer never sees a raw opening or closing script-tag
-  // sequence inside this block and truncates the content at that point.
-  // Always overwrite — "set if missing" would silently ignore stale legacy keys
-  // left over from a previous slug format (e.g. incrediblehumansafrica vs incredible-humans-africa).
-  var rfixScript = '\u003cscript id="_baked_rfix"\u003e!function(){var d=' + _safeJson(rfixData) + ';Object.keys(d).forEach(function(k){localStorage.setItem(k,d[k]);});}();\u003c/script\u003e';
-  html = html.replace(/<script id="_baked_rfix">[\s\S]*?<\/script>/, '');
-  html = html.replace('</head>', function() { return rfixScript + '</head>'; });
-
   // Prepend DOCTYPE (outerHTML never includes it)
   html = '<!DOCTYPE html>\n' + html;
 
   // Pre-save integrity check — abort rather than write a broken file.
   // Checks are ordered from earliest-in-file to latest so the first failure
   // points to exactly where the output was truncated.
-  // NOTE: avoid checking JS strings that sit after the rfixScript definition
-  // in the source, because Chrome's outerHTML serializer can truncate a script
-  // element's content when it encounters a literal <script sequence inside it.
   // The SAVE markers and structural tags are all safe to check.
   var checks = [
     { marker: '/*[SAVE:issues]*/',    label: 'issues SAVE marker' },
@@ -1248,9 +1116,6 @@ window.filterBy = filterBy;
 window.openAddTask = openAddTask;
 window.closeAddTask = closeAddTask;
 window.submitAddTask = submitAddTask;
-window.exportModalXlsx = exportModalXlsx;
-window.importModalXlsx = importModalXlsx;
-window.saveRfix = saveRfix;
 window.closeModal = closeModal;
 window.cyclePriority = cyclePriority;
 window.cycleEffort = cycleEffort;
