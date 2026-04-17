@@ -1062,70 +1062,120 @@ function submitAddTask() {
   closeAddTask();
 }
 
-// Save File — writes current state directly back to the HTML file (Chrome/Edge only)
-var _saveFileHandle = null;
+// ─── Save helpers ────────────────────────────────────────────────────────────
 
 // Safely encode data as JSON for embedding inside a <script> block.
-// 1. Escapes < and > with Unicode so closing-script-tag sequences can never
-//    terminate the script block in the saved HTML.
-// 2. Callers use a function callback in .replace() so that $ characters
-//    in the JSON (prices, URL params, etc.) are never misread as
-//    replacement-pattern references ($&, $1, $`, $' etc.).
+// Unicode-escapes < and > so closing-script-tag sequences can never terminate
+// the block. Callers also use function callbacks in .replace() so that $ chars
+// in the JSON (prices, URL params, etc.) are never misread as replacement
+// pattern references ($&, $1, $` etc.).
 function _safeJson(data) {
   return JSON.stringify(data)
     .replace(/</g, '\\u003c')
     .replace(/>/g, '\\u003e');
 }
 
+// Attempt a regex replacement and warn in the console if the marker was not
+// found (i.e. the replacement was a no-op). A missing marker means the baked
+// data did not land in the saved file — useful for diagnosing save failures.
+function _replaceOrWarn(html, pattern, replaceFn, label) {
+  var next = html.replace(pattern, replaceFn);
+  if (next === html) { console.warn('[Save] marker not found: ' + label); }
+  return next;
+}
+
+// ─── Save File ───────────────────────────────────────────────────────────────
+// Writes the current page state back to the HTML file (Chrome/Edge).
+// Firefox/Safari fall back to a Blob download.
+//
+// Design notes:
+//  - Uses document.documentElement.outerHTML (the live, fully-rendered DOM)
+//    rather than a cached pre-render snapshot. A cached snapshot captured
+//    during inline-script execution can be structurally incomplete because the
+//    HTML parser may not have committed all remaining content to the DOM yet.
+//  - The rendered table rows live in separate DOM elements; they do not alter
+//    the <script> element's text content, so the script block is always intact.
+//  - Each data variable is replaced via a regex + function callback, so $ in
+//    the data never corrupts the replacement string.
+//  - _safeJson Unicode-escapes < / > so no value in the baked JSON can produce
+//    a closing-script-tag sequence that would truncate the block on re-parse.
+var _saveFileHandle = null;
+
 function saveToFile() {
   var summaryEl = document.getElementById('summaryText');
   var currentSummary = summaryEl ? summaryEl.innerHTML : '';
   var psSummaryEl = document.getElementById('ps-summary-text');
   var currentPsSummary = psSummaryEl ? psSummaryEl.innerHTML : null;
-  // Use pre-render snapshot — avoids rendered issue/pagespeed HTML polluting
-  // the script block with characters that break re-parsing (e.g. script-closing tags)
-  var html = _pageSource || document.documentElement.outerHTML;
-  // Bake in current issues state.
-  // NOTE: function callback in .replace() prevents $ in the JSON from being
-  // treated as a replacement-pattern reference (e.g. $& = full match, $1 = group 1).
+
+  // Serialize the live DOM. document.documentElement gives <html>...</html>
+  // without the DOCTYPE, so we prepend it once below.
+  var html = document.documentElement.outerHTML;
+
+  // Bake current data variables back into the script block
   var _issuesToBake = _safeJson(issues);
-  html = html.replace(
+  html = _replaceOrWarn(html,
     /var issues\s*=\s*([\s\S]*?);\s*\/\*\[SAVE:issues\]\*\//,
-    function() { return 'var issues = ' + _issuesToBake + '; /*[SAVE:issues]*/'; }
+    function() { return 'var issues = ' + _issuesToBake + '; /*[SAVE:issues]*/'; },
+    'issues'
   );
-  // Bake in current pagespeed categories state
+
   var _psCatsToBake = _safeJson(pagespeedCategories);
-  html = html.replace(
+  html = _replaceOrWarn(html,
     /var pagespeedCategories\s*=\s*([\s\S]*?);\s*\/\*\[SAVE:pagespeed\]\*\//,
-    function() { return 'var pagespeedCategories = ' + _psCatsToBake + '; /*[SAVE:pagespeed]*/'; }
+    function() { return 'var pagespeedCategories = ' + _psCatsToBake + '; /*[SAVE:pagespeed]*/'; },
+    'pagespeedCategories'
   );
-  // Bake in current summary text
+
   var _summaryToBake = _safeJson(currentSummary);
-  html = html.replace(
+  html = _replaceOrWarn(html,
     /var defaultSummary\s*=\s*[\s\S]*?;\s*\/\*\[SAVE:summary\]\*\//,
-    function() { return 'var defaultSummary = ' + _summaryToBake + '; /*[SAVE:summary]*/'; }
+    function() { return 'var defaultSummary = ' + _summaryToBake + '; /*[SAVE:summary]*/'; },
+    'defaultSummary'
   );
-  // Bake in PS summary override
-  if (currentPsSummary) {
+
+  if (currentPsSummary != null) {
     var _psSummaryToBake = _safeJson(currentPsSummary);
-    html = html.replace(
+    html = _replaceOrWarn(html,
       /var psSummaryOverride\s*=\s*[\s\S]*?;\s*\/\*\[SAVE:pssummary\]\*\//,
-      function() { return 'var psSummaryOverride = ' + _psSummaryToBake + '; /*[SAVE:pssummary]*/'; }
+      function() { return 'var psSummaryOverride = ' + _psSummaryToBake + '; /*[SAVE:pssummary]*/'; },
+      'psSummaryOverride'
     );
   }
-  // Bake in all rfix (recommended fix) data from localStorage so it survives on Netlify
+
+  // Bake all rfix / column-layout data from localStorage so it survives Netlify
   var rfixData = {};
   for (var i = 0; i < localStorage.length; i++) {
     var k = localStorage.key(i);
-    // Bake both rfix (recommended fixes) and details (column layout overrides from XLSX import)
-    if (k && (k.indexOf('-rfix-') !== -1 || k.indexOf('-details-') !== -1)) rfixData[k] = localStorage.getItem(k);
+    if (k && (k.indexOf('-rfix-') !== -1 || k.indexOf('-details-') !== -1)) {
+      rfixData[k] = localStorage.getItem(k);
+    }
   }
   var rfixScript = '<script id="_baked_rfix">!function(){var d=' + _safeJson(rfixData) + ';Object.keys(d).forEach(function(k){if(!localStorage.getItem(k))localStorage.setItem(k,d[k]);});}();<' + '/script>';
-  // Remove previous baked rfix if re-saving
   html = html.replace(/<script id="_baked_rfix">[\s\S]*?<\/script>/, '');
   html = html.replace('</head>', function() { return rfixScript + '</head>'; });
+
+  // Prepend DOCTYPE (outerHTML never includes it)
   html = '<!DOCTYPE html>\n' + html;
-  // Firefox / Safari fallback — no showSaveFilePicker, use blob download
+
+  // Pre-save integrity check — abort rather than write a broken file
+  var checks = [
+    { marker: 'window.saveToFile = saveToFile;', label: 'window assignments' },
+    { marker: '/*[SAVE:issues]*/',               label: 'issues SAVE marker' },
+    { marker: '/*[SAVE:pagespeed]*/',             label: 'pagespeed SAVE marker' },
+    { marker: 'renderTable()',                    label: 'boot render calls' },
+    { marker: '<\/script>',                       label: 'script closing tag' },
+    { marker: '<\/body>',                         label: 'body closing tag' },
+    { marker: '<\/html>',                         label: 'html closing tag' }
+  ];
+  for (var ci = 0; ci < checks.length; ci++) {
+    if (html.indexOf(checks[ci].marker) === -1) {
+      alert('Save aborted: "' + checks[ci].label + '" is missing from the output. Open the console for details.');
+      console.error('[Save] Integrity check failed — missing: ' + checks[ci].marker);
+      return;
+    }
+  }
+
+  // Firefox / Safari: no showSaveFilePicker — use Blob download instead
   if (!window.showSaveFilePicker) {
     var _link = document.createElement('a');
     _link.href = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
@@ -1133,13 +1183,14 @@ function saveToFile() {
     _link.click();
     return;
   }
+
   var doWrite = function(handle) {
     handle.createWritable().then(function(writable) {
       writable.write(html).then(function() {
         writable.close().then(function() {
           var ind = document.getElementById('saveIndicator');
           ind.style.background = '#357ce7';
-          ind.textContent = 'File saved ✓';
+          ind.textContent = 'File saved \u2713';
           ind.classList.add('show');
           setTimeout(function() {
             ind.classList.remove('show');
@@ -1188,11 +1239,6 @@ window.cyclePsCategory = cyclePsCategory;
 window.copyPsUrls = copyPsUrls;
 window.deletePsCategory = deletePsCategory;
 window.toggleCwvUrls = toggleCwvUrls;
-
-// Capture clean HTML BEFORE any rendering so saveToFile() works on
-// the original DOM (no rendered table rows, no pagespeed HTML, no user
-// data that could contain script-closing tags or other parser-breaking sequences)
-var _pageSource = document.documentElement.outerHTML;
 
 renderTable();
 renderCwv();
