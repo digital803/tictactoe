@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>___CLIENT___ - Technical SEO Analysis</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1141,6 +1141,28 @@ function saveToFile() {
 issues = issues.filter(function(issue) {
   return !(issue.name || '').startsWith('PageSpeed:');
 });
+
+// Expose all onclick-callable functions on window so they work when served
+// from any host (e.g. Netlify) that may affect script scope
+window.saveToFile = saveToFile;
+window.setCwvDevice = setCwvDevice;
+window.toggleAllRows = toggleAllRows;
+window.filterBy = filterBy;
+window.openAddTask = openAddTask;
+window.closeAddTask = closeAddTask;
+window.submitAddTask = submitAddTask;
+window.exportModalXlsx = exportModalXlsx;
+window.closeModal = closeModal;
+window.cyclePriority = cyclePriority;
+window.cycleEffort = cycleEffort;
+window.showUrls = showUrls;
+window.cycleStatus = cycleStatus;
+window.deleteIssue = deleteIssue;
+window.togglePS = togglePS;
+window.cyclePsCategory = cyclePsCategory;
+window.copyPsUrls = copyPsUrls;
+window.deletePsCategory = deletePsCategory;
+window.toggleCwvUrls = toggleCwvUrls;
 
 renderTable();
 renderCwv();
