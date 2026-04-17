@@ -1074,7 +1074,7 @@ function saveToFile() {
   var psSummaryEl = document.getElementById('ps-summary-text');
   var currentPsSummary = psSummaryEl ? psSummaryEl.innerHTML : null;
   // Use pre-render snapshot — avoids rendered issue/pagespeed HTML polluting
-  // the script block with characters that break re-parsing (e.g. </script>)
+  // the script block with characters that break re-parsing (e.g. script-closing tags)
   var html = _pageSource || document.documentElement.outerHTML;
   // Bake in current issues state
   html = html.replace(
@@ -1168,7 +1168,7 @@ window.toggleCwvUrls = toggleCwvUrls;
 
 // Capture clean HTML BEFORE any rendering so saveToFile() works on
 // the original DOM (no rendered table rows, no pagespeed HTML, no user
-// data that could contain </script> or other parser-breaking sequences)
+// data that could contain script-closing tags or other parser-breaking sequences)
 var _pageSource = document.documentElement.outerHTML;
 
 renderTable();
