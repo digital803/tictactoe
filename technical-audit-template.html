@@ -482,16 +482,16 @@ function renderTable() {
       '<td><span class="b ' + categoryClasses[issue.category] + '">' + categoryLabels[issue.category] + '</span></td>' +
       '<td><span class="b ' + effortClasses[issue.effort] + '" onclick="event.stopPropagation(); cycleEffort(\'' + issue.id + '\')">' + effortLabels[issue.effort] + '</span></td>' +
       '<td>' +
-        '<a class="url-link" href="#" onclick="event.preventDefault(); event.stopPropagation(); openUrlsModal(\'' + issue.id + '\'); return false;">' + issue.url_count + ' URLs</a>' +
+        '<a class="url-link" href="' + escHtml(issue.sheet_url || (issue.urls && issue.urls[0]) || '#') + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">' + issue.url_count + ' URLs</a>' +
         (issue.sheet_url ? ' <a href="' + issue.sheet_url + '" target="_blank" title="Open in Google Sheets" style="color:#0f9d58;text-decoration:none;font-size:13px" onclick="event.stopPropagation()">&#128202;</a>' : '') +
       '</td>' +
       '<td><span class="st ' + statusClasses[issue.status] + '" onclick="event.stopPropagation(); cycleStatus(\'' + issue.id + '\')">' + statusLabels[issue.status] + '</span></td>' +
-      '<td><span class="arrow open" id="a-' + issue.id + '">&#9654;</span></td>' +
+      '<td><span class="arrow" id="a-' + issue.id + '">&#9654;</span></td>' +
       '<td><button class="del-btn" onclick="event.stopPropagation(); deleteIssue(\'' + issue.id + '\')" title="Delete task">&#10005;</button></td>';
     tbody.appendChild(mainRow);
 
     var detailRow = document.createElement('tr');
-    detailRow.className = 'detail-row open';
+    detailRow.className = 'detail-row';
     detailRow.id = issue.id;
     detailRow.style.display = show ? '' : 'none';
     var fixHtml = '<ul>' + issue.fix.map(function(f) { return '<li>' + escHtml(f) + '</li>'; }).join('') + '</ul>';
