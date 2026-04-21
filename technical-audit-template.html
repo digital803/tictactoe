@@ -802,13 +802,21 @@ var cwvDataDesktop = (function(){ try { return ___CWV_DESKTOP_JSON___; } catch(e
 function mergeCwvData(mobile, desktop) {
   var byUrl = {};
   (mobile || []).forEach(function(m) {
-    byUrl[m.url] = { url: m.url, mobile: { lcp: m.lcp, cls: m.cls, inp: m.inp, score: m.score, source: m.source }, desktop: null };
+    byUrl[m.url] = {
+      url: m.url,
+      mobile: { lcp: m.lcp, cls: m.cls, inp: m.inp, score: m.score, source: m.source },
+      desktop: null
+    };
   });
   (desktop || []).forEach(function(d) {
     if (byUrl[d.url]) {
       byUrl[d.url].desktop = { lcp: d.lcp, cls: d.cls, inp: d.inp, score: d.score, source: d.source };
     } else {
-      byUrl[d.url] = { url: d.url, mobile: null, desktop: { lcp: d.lcp, cls: d.cls, inp: d.inp, score: d.score, source: d.source } };
+      byUrl[d.url] = {
+        url: d.url,
+        mobile: null,
+        desktop: { lcp: d.lcp, cls: d.cls, inp: d.inp, score: d.score, source: d.source }
+      };
     }
   });
   var out = [];
@@ -1130,4 +1138,9 @@ window.toggleCwvUrls = toggleCwvUrls;
 
 renderTable();
 renderCwv();
-renderPageS
+renderPageSpeed();
+renderPsSummary();
+</script>
+
+</body>
+</html>
