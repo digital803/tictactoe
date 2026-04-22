@@ -422,15 +422,6 @@ if (saved) {
         if (s.severity) issue.severity = s.severity;
       }
     });
-    // Restore order
-    if (savedData.length === issues.length) {
-      var ordered = [];
-      savedData.forEach(function(s) {
-        var issue = issues.find(function(i) { return i.id === s.id; });
-        if (issue) ordered.push(issue);
-      });
-      if (ordered.length === issues.length) issues = ordered;
-    }
   } catch(e) {}
 }
 
@@ -545,9 +536,9 @@ function cyclePriority(id) {
   if (!issue) return;
   var idx = severityOrder.indexOf(issue.severity);
   issue.severity = severityOrder[(idx + 1) % severityOrder.length];
+  sortByPriority();
   saveState();
   renderTable();
-  setTimeout(function() { sortByPriority(); saveState(); renderTable(); }, 2000);
 }
 
 function sortByPriority() {
@@ -1136,6 +1127,7 @@ window.copyPsUrls = copyPsUrls;
 window.deletePsCategory = deletePsCategory;
 window.toggleCwvUrls = toggleCwvUrls;
 
+sortByPriority();
 renderTable();
 renderCwv();
 renderPageSpeed();
