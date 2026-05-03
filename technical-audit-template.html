@@ -96,27 +96,6 @@
   .arrow:hover { color: #357ce7; }
   .arrow.open { transform: rotate(90deg); }
 
-  /* URL Modal */
-  .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,.5); z-index: 100; }
-  .modal-overlay.open { display: flex; align-items: center; justify-content: center; }
-  .modal { background: #fff; border-radius: 0; width: clamp(420px, 92vw, 1600px); max-height: 90vh; min-height: 200px; overflow: hidden; display: flex; flex-direction: column; resize: both; }
-  .modal-header { padding: 16px 20px; border-bottom: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-  .modal-header h3 { font-size: 15px; font-weight: 600; color: #00142a; flex: 1; }
-  .modal-actions { display: flex; gap: 8px; }
-  .modal-btn { background: #357ce7; color: #fff; border: none; padding: 6px 14px; border-radius: 0; font-size: 12px; font-weight: 600; cursor: pointer; }
-  .modal-btn:hover { background: #2563b8; }
-  .modal-btn.outline { background: none; color: #357ce7; border: 1px solid #357ce7; }
-  .modal-btn.outline:hover { background: #f0f5ff; }
-  .modal-close { background: none; border: none; font-size: 22px; cursor: pointer; color: #999; padding: 4px 8px; line-height: 1; }
-  .modal-close:hover { color: #333; }
-  .modal-body { padding: 0; overflow-y: auto; flex: 1; }
-  .modal-body table { font-size: 12px; width: 100%; }
-  .modal-body td { padding: 8px 16px; border-bottom: 1px solid #f5f5f5; }
-  .modal-body th { padding: 10px 16px; font-size: 11px; position: sticky; top: 0; background: #f7f7f7; z-index: 1; }
-  .modal-body tr:hover td { background: #fafafa; }
-  .modal-body code { font-size: 12px; }
-.copy-success { color: #38a169; font-size: 12px; font-weight: 600; display: none; }
-  .copy-success.show { display: inline; }
 
   /* PageSpeed section */
   .ps-category { border: 1px solid #e0e0e0; border-radius: 0; margin-bottom: 14px; overflow: hidden; }
@@ -374,18 +353,6 @@
 
 </div>
 
-<div class="modal-overlay" id="urlModal">
-  <div class="modal">
-    <div class="modal-header">
-      <h3 id="modalTitle">Affected URLs</h3>
-      <div class="modal-actions">
-        <a id="modalSheetLink" href="#" target="_blank" class="modal-btn outline" style="display:none;text-decoration:none">&#128202; Open in Google Sheets</a>
-      </div>
-      <button class="modal-close" onclick="closeModal()">&times;</button>
-    </div>
-    <div class="modal-body" id="modalBody"></div>
-  </div>
-</div>
 
 <div class="save-indicator" id="saveIndicator">Changes saved</div>
 
@@ -401,7 +368,6 @@ var STORAGE_PREFIX = 'audit-___CLIENT_SLUG___';
 
 // Issue data - populated server-side from Claude analysis
 var issues = ___ISSUES_JSON___; /*[SAVE:issues]*/
-var issueDetailsByType = (function(){ try { return ___ISSUE_DETAILS_JSON___; } catch(e) { return {}; } })();
 
 var currentFilter = 'all';
 var categoryLabels = { tech: "Technical", cont: "Content", auth: "Authority" };
@@ -639,69 +605,6 @@ function filterBy(status) {
   renderTable();
 }
 
-var currentModalUrls = [];
-
-function getNormalizedKey(name) {
-  return (name || '').toLowerCase()
-    .replace(/:/g,'_').replace(/\s+/g,'_')
-    .replace(/[^a-z0-9_]/g,'').replace(/\d+/g,'x')
-    .replace(/_+/g,'_').replace(/^_+|_+$/g,'');
-}
-
-
-function openUrlsModal(id) {
-  var issue = issues.find(function(i) { return i.id === id; });
-  if (!issue) return;
-  _currentModalIssue = issue;
-  currentModalUrls = issue.urls;
-  document.getElementById('modalTitle').textContent = issue.name + ' — ' + issue.url_count + ' affected URLs';
-
-  // Show or hide the Google Sheets link in the modal header
-  var sheetLink = document.getElementById('modalSheetLink');
-  if (issue.sheet_url) {
-    sheetLink.href = issue.sheet_url;
-    sheetLink.style.display = '';
-  } else {
-    sheetLink.style.display = 'none';
-  }
-
-  var key = getNormalizedKey(issue.name);
-  var details = (issueDetailsByType && issueDetailsByType[key]) ? issueDetailsByType[key] : [];
-
-  var html;
-  if (details.length > 0) {
-    var allCols = Object.keys(details[0]).filter(function(c) { return c !== 'Address' && c !== 'URL'; });
-    html = '<table style="table-layout:auto"><thead><tr><th style="width:36px">#</th><th style="min-width:300px">URL</th>';
-    allCols.forEach(function(c) { html += '<th style="white-space:nowrap">' + escHtml(c) + '</th>'; });
-    html += '</tr></thead><tbody>';
-    details.forEach(function(row, i) {
-      var url = row.Address || row.URL || '';
-      html += '<tr><td>' + (i + 1) + '</td>';
-      html += '<td style="min-width:300px;word-break:break-all"><a href="' + escHtml(url) + '" target="_blank" class="url-link">' + escHtml(url) + '</a></td>';
-      allCols.forEach(function(c) { html += '<td>' + escHtml(row[c] || '') + '</td>'; });
-      html += '</tr>';
-    });
-    html += '</tbody></table>';
-  } else {
-    html = '<table><thead><tr><th style="width:40px">#</th><th>URL / Resource</th></tr></thead><tbody>';
-    issue.urls.forEach(function(u, i) {
-      html += '<tr><td>' + (i + 1) + '</td><td><a href="' + escHtml(u) + '" target="_blank" class="url-link">' + escHtml(u) + '</a></td></tr>';
-    });
-    html += '</tbody></table>';
-  }
-  document.getElementById('modalBody').innerHTML = html;
-  document.getElementById('urlModal').classList.add('open');
-}
-
-var _currentModalIssue = null;
-
-function closeModal() {
-  document.getElementById('urlModal').classList.remove('open');
-}
-
-document.getElementById('urlModal').onclick = function(e) {
-  if (e.target === this) closeModal();
-};
 
 // PageSpeed data — grouped by issue category
 // Claude populates this from SF PageSpeed export
@@ -1186,10 +1089,8 @@ window.filterBy = filterBy;
 window.openAddTask = openAddTask;
 window.closeAddTask = closeAddTask;
 window.submitAddTask = submitAddTask;
-window.closeModal = closeModal;
 window.cyclePriority = cyclePriority;
 window.cycleEffort = cycleEffort;
-window.openUrlsModal = openUrlsModal;
 window.cycleStatus = cycleStatus;
 window.deleteIssue = deleteIssue;
 window.togglePS = togglePS;
